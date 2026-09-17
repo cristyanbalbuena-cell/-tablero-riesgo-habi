@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero Operativo de Riesgo — Habi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#11151d;
+    --surface:#181e29;
+    --surface-2:#1f2634;
+    --border:#2a3244;
+    --text:#eceef2;
+    --text-dim:#8d96a8;
+    --violet:#a352fb;
+    --violet-dim:#37205e;
+    --habi-vivid:#7b00fc;
+    --habi-mid:#a352fb;
+    --habi-light:#bb84fc;
+    --habi-pale:#d2b4fc;
+    --habi-deep:#5c02bb;
+    --habi-coral:#ff6a57;
+    --habi-banner-top:#af62fe;
+    --habi-banner-bottom:#6d27d8;
+    --habi-card-light:#f3eefe;
+    --habi-text-onlight:#7c2ce0;
+    --green:#3ecf8e;
+    --green-dim:#1c3a2d;
+    --amber:#f5b342;
+    --amber-dim:#3d331a;
+    --red:#ef5f5f;
+    --red-dim:#3d2223;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:28px;
+  }
+  .num, .mono{font-family:'Space Grotesk',sans-serif;}
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:24px;
+    border-bottom:1px solid var(--border);
+    padding-bottom:18px;
+  }
+  .brand-eyebrow{
+    color:var(--violet);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-weight:600;
+    margin-bottom:4px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:26px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{color:var(--text-dim);font-size:13px;margin-top:4px;}
+  .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  select, button, input, textarea{
+    font-family:'Inter',sans-serif;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:13px;
+    outline:none;
+  }
+  select:focus, button:focus, input:focus, textarea:focus{border-color:var(--violet);}
+  button{
+    cursor:pointer;
+    font-weight:600;
+    transition:transform .08s ease, border-color .15s ease;
+  }
+  button:hover{border-color:var(--violet);}
+  button:active{transform:scale(.97);}
+  button.primary{background:var(--violet);border-color:var(--violet);color:#0e0b1f;}
+  button.ghost{background:transparent;}
+  button.small{padding:5px 10px;font-size:12px;}
+
+  section{margin-bottom:30px;}
+  .section-title{
+    display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap;
+  }
+  .section-title h2{font-size:15px;font-weight:600;letter-spacing:.01em;}
+  .section-title .count-chip{
+    font-size:11px;color:var(--text-dim);background:var(--surface-2);
+    border:1px solid var(--border);border-radius:20px;padding:2px 9px;
+  }
+  .section-hint{color:var(--text-dim);font-size:12px;margin-top:-8px;margin-bottom:14px;}
+
+  /* KPI BAR */
+  .kpi-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:30px;}
+  .kpi-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 20px;border-left:4px solid var(--border);
+  }
+  .kpi-card .kpi-num{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;line-height:1;}
+  .kpi-card .kpi-lbl{font-size:12px;color:var(--text-dim);margin-top:6px;}
+  .kpi-violet{border-left-color:var(--violet);}
+  .kpi-violet .kpi-num{color:var(--violet);}
+  .kpi-amber{border-left-color:var(--amber);}
+  .kpi-amber .kpi-num{color:var(--amber);}
+  .kpi-coral{border-left-color:var(--habi-coral);}
+  .kpi-coral .kpi-num{color:var(--habi-coral);}
+  .kpi-red{border-left-color:var(--red);}
+  .kpi-red .kpi-num{color:var(--red);}
+
+  /* AREA GAUGES */
+  .area-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
+  .area-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px;display:flex;gap:16px;align-items:center;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .area-card.zone-green{border-color:var(--green-dim);}
+  .area-card.zone-amber{border-color:var(--amber);background:linear-gradient(145deg, var(--surface) 60%, var(--amber-dim) 150%);}
+  .area-card.zone-red{border-color:var(--red);border-width:2px;background:linear-gradient(145deg, var(--surface) 55%, var(--red-dim) 160%);box-shadow:0 0 0 1px var(--red), 0 8px 20px -8px rgba(239,95,95,.5);}
+  .area-card .meta{flex:1;}
+  .area-card .marca-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;}
+  .area-card .area-name{font-weight:600;font-size:15px;margin:2px 0 6px;}
+  .area-card .gerente-name{font-size:11px;color:var(--habi-light);margin-bottom:6px;}
+  .area-card .status-word{font-size:12px;font-weight:600;}
+  .risk-badge{
+    display:inline-block;margin-top:8px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;
+    background:var(--red);color:#1a0a0a;
+  }
+  .gauge-wrap{position:relative;width:78px;height:78px;flex-shrink:0;}
+  .gauge-wrap svg{transform:rotate(-90deg);}
+  .gauge-num{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .gauge-num .n{font-size:20px;font-weight:700;line-height:1;}
+  .gauge-num .lbl{font-size:8px;color:var(--text-dim);letter-spacing:.05em;}
+
+  /* ANALYST TABLE */
+  table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  thead th{
+    text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-dim);font-weight:600;padding:10px 14px;border-bottom:1px solid var(--border);
+  }
+  tbody td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--surface-2);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;}
+  .dot.green{background:var(--green);} .dot.amber{background:var(--amber);} .dot.red{background:var(--red);}
+
+  .rail{position:relative;width:150px;height:16px;background:var(--surface-2);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+  .rail-fill{position:absolute;left:0;top:0;height:100%;border-radius:5px 0 0 5px;transition:width .3s ease;}
+  .rail-fill.green{background:var(--green);} .rail-fill.amber{background:var(--amber);} .rail-fill.red{background:var(--red);}
+  .rail-tick{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.35);}
+  .rail-num{font-size:11px;color:var(--text-dim);margin-left:8px;font-family:'Space Grotesk',sans-serif;}
+  .gerente-chip{font-size:11px;color:var(--habi-light);}
+
+  /* ALERTS */
+  .alert-list{display:flex;flex-direction:column;gap:10px;}
+  .alert-item{
+    background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);
+    border-radius:var(--radius);padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  .alert-item.amber-border{border-left-color:var(--amber);}
+  .alert-item .txt strong{font-weight:600;}
+  .alert-item .txt .sub{color:var(--text-dim);font-size:12px;margin-top:2px;}
+  .empty-note{color:var(--text-dim);font-size:13px;padding:14px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);}
+
+  /* CASES PANEL */
+  .case-list{display:flex;flex-direction:column;gap:8px;}
+  .case-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px;}
+  .case-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .case-tags{display:flex;gap:5px;flex-wrap:wrap;font-size:10.5px;margin-top:4px;}
+  .tag{background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:2px 8px;color:var(--text-dim);}
+  .tag.violet{color:var(--violet);border-color:var(--violet-dim);}
+  .tag.nid{color:var(--habi-light);border-color:var(--violet-dim);font-family:'Space Grotesk',sans-serif;}
+  .case-desc{font-size:13px;color:var(--text-dim);margin:8px 0;line-height:1.5;}
+  .ai-resumen{
+    margin-top:10px;background:var(--habi-card-light);border:1px solid var(--habi-light);border-radius:8px;
+    padding:10px 12px;font-size:13px;line-height:1.5;display:none;color:var(--habi-text-onlight);font-weight:600;
+  }
+  .ai-resumen.show{display:block;}
+  .ai-resumen .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--habi-text-onlight);margin-bottom:4px;font-weight:700;opacity:.75;}
+
+  /* MODAL */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(5,6,10,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
+  }
+  .modal-backdrop.show{display:flex;}
+  .modal{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;
+    width:100%;max-width:640px;max-height:88vh;overflow-y:auto;
+  }
+  .modal h3{font-family:'Space Grotesk',sans-serif;margin-bottom:16px;font-size:17px;}
+  .modal .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal label{font-size:11px;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
+  .modal .field{margin-bottom:14px;}
+  .modal select, .modal input, .modal textarea{width:100%;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px;}
+  textarea{resize:vertical;min-height:70px;}
+  .template-box{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:14px;
+    font-size:13px;white-space:pre-wrap;line-height:1.6;margin-top:10px;color:var(--text);
+  }
+  .toast{
+    position:fixed;bottom:24px;right:24px;background:var(--green-dim);border:1px solid var(--green);
+    color:var(--green);padding:10px 16px;border-radius:8px;font-size:13px;display:none;z-index:60;
+  }
+  .toast.show{display:block;}
+  footer{color:var(--text-dim);font-size:11px;text-align:center;margin-top:30px;padding-top:16px;border-top:1px solid var(--border);}
+
+  /* HABI BRAND BANNER */
+  .hero-banner{
+    position:relative;
+    height:96px;
+    border-radius:16px;
+    overflow:hidden;
+    margin-bottom:22px;
+    background:linear-gradient(165deg, var(--habi-banner-top) 0%, var(--habi-banner-bottom) 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+  }
+  .hero-banner img{height:58px;display:block;}
+  .hero-banner .divider{width:1px;height:42px;background:rgba(255,255,255,.45);}
+</style>
+</head>
+<body>
+
+<div class="hero-banner">
+  <img src="data:image/png;base64,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" alt="Logo Habi">
+  <div class="divider"></div>
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAABTCAYAAADXy/ocAAAO1ElEQVR4nN2caYwcx3WAv6rpmdmLuyR3eXNJRhJ1UOLyisSEhyJDhhMJinU5pGHHcX4EsiQ7sBIEMRAgRhIECWwYyU8DgXP8iKDEkWWLso3YsRNLkZ3YlimJpGhRYihGPLSkKF67y9mdnamXH697zu7p7pnhrphH9HKmu+rVq1fvruoxf3+/E2pA6r4FYMJu+u1DO8SD1P0X8Tx6XB075ZB+h+B/Y1rjbwRPEhAVNmDwOe2Alf4S9EszdqqhIiEpzVLTTETw0hDb7qDtQpU5ghBQmoK5Dc0beW1imF/3XMBLNGgHS9pJ3yqY1Esq+CzukjRCCLM6nVyzmtmU/TsavqvQyAsv7GY3ECfv18GYLe5IeIOY/o2gCx7MLZEathxwPkWhQTfDSGmlvhL1sILHt5K+bfacc6kMddX9BubWRJDkj2hcaH+lNKpv/Pg1I8wZeJGMktCPleWo9oqLhWqfS+KQIYolqRhkYtS84VmcksSqoWDaXEITQlC8FBkDWLBWvZkIiNMrIYpQMkIhUg/DwVNDGMKNSpBSjXBaQduBvI/aWLAeLForXL/bsGQ9WM9w8SS89SNh/DDMXqlhWicQWIKUNHsi0kFY2h1XbyyM3ACbPgIrbjVk+8BmAANL1sN1uwznj8Nr3xSOvQiuzNwbLMAzGELZFQgVdERYrKQbYXSb4ZcfgYGlqn615BhPJW7pTbBw1NA/Ihz+JsxOJxmcOmQV31LJDVNMBDpLdzoGAyvHYOdj0DfsS1NUUwu5PtiyV1fx0D4oF9scto00TUR8m9X0oAF5KyRNsU6jiwnvZwys3gI7HjX0LW7NqEofC9ke2PSwwcsJr/wLlGejxlbHZHC+5iSxu61VKCTdiSe6UzAZGN0GOx819A+rmiXuayE/ABvuM7iycPAbUApUsuItlElL8kdZlnuTohvgxPQYhfKicJOTELwkzGlld9JG8DYDKzbCrseTS1QjGAs9C2DsIUO5CIeeq5cwI46R3HHuWvQ39GSmEDKsnD7MD8//NkXpa5/2tISKSN2Vpp+xwrJbhd2fMfSPtMeoAIyFXD9s/RiMPQgZj4qmZUyJsQX76Mu8h6GAZZJVPYcZyR1ti/YAupZIR0HF81hYvdWw63HDgmXdwW0M5Hph8x41HwefFUozACUyZsavgilYSmTMbCSuVrRXcHSjJNPqCia1eqth96dVoroKBrK9sGUP3Hqf4PU4ymR4feqDCHkMYI3lXHEN54trU82lEVJXHdIy1xhYtdmwM4XXSwvGZ9jWvRYvJ7z6tMepwm384L1HWNf7UwpuiDcm7+RKeaiuX9q5XNVKqbGw5hcNO9rweu2MleuH2z6syeWBZ3KcnN7IOzM3I2IpS5ayZOgkwr5qNstmYNUWU/V6V5FRARgLPYOw8QFDeRYO7csyM5PtSmqkQelVqK9reGDY9ZjaKJPa57YPQRy29aMGa+GVrwnlEm0xrH56Jn0NPm7PzVhYvc2w61HLguXp869ugLGQ7YPNewwCvPqMhKZG0XMNr7mllqxWeZUxsPYOw67HrErUfKadRhm2Za9BRDj4rDBb6Axn2wrS7GaF1dtgx6csfYvDVS8o5M1VeaXWS256yJDJdoavI5tVS9Ta7YYdj6hENRpzV4ILx+DkS3DyJ3D3n6khngsIGLbxfouxjv3/HK6S9RBem0roo6L1yWZgze2G3Y/bSK935gB8+w/g/FFVjQ/8cbJRuwUVL/lhi4jj1a8FKtk4r2jBkfgd6aCOXltAq0khPFg5Ztj9aRsacIpTqZo6BxfeguKkEl4u6mW9+vp6UFpGUA/mlAST6TyYNRbyC2DzwxYpOV55Wig1ecnWRjaBGoZvkZgMrN6iKczASPM44uDUT2H/P8ClE9VCXbkE3/0j6F0Ed34OfvZ3cPG4VkRv/nW48ddgtgDf+zwUJyCThU2/CaO/FENmAgi85Ja9Fqzw8lfThRVedMNmLtfmeqNbLXd91tK/JLQp4uDiCXjtGZWuAGWpAK8/B32L4I5PwfHn4dRLkMnD8A3KrHIR3vxXmHhHo/I1O7vDrID2bB9s3WtwJTjwjSD5jgerDlEL3yIGEXAOnBP/cjjn6tRvYCnc/glD33CL8MBAfhBGboTBVVU1sp4yZfENkMnpPZHqVQGhuguTnBeJwBjwemDzbxhW3JYsaBYRPFdLiqn8qUde+9nChnssi9eZ2Jr5dXfB6B1w7D/gW0+oWnl52PMk9A6Dl5u/gyDGaKQ/9qDh7BHH9ER8H4uElFn8f7qDXP/My+tujJeLJyaTg56FVLe2UMnKD0HvkH6ez8DVZmD5BsPwdeFENPLFSit3iTrC2ivbT+p8r5YhlR3mqAFRGzdXEpfNw8j14XW5RkgdwWdyhmxPq6J8jf3xx8svrDJXHLx7GArntW6eyaIOtwznjsDMZTj9csS+YFXYu2bIrKfSH6BsdaWP4FvtKglMnoHilLbJ9cPAMli0TkOFK+c1LHjuM9C/FO75Eiwbg7f/W3eZj3wbLp3UaL842TzO5Fkft1Rxd7rtaQwYIziJP02UPjdswdzyLLzwBXjyQXjqYXjxS8qE3oVwywO65ydlDQnGDyjjxj4Ki68DRMOKUy+pFHp5fzj8zfEy/PCv4KmPKP4XvugHrl0Bg8VghJZXaslqte8mDqYvwcS47rYULgIObBa2Pw7LboMDT6mEDa6CoVHoXwIP/i0cehrO/RyG1sCmj8PRf1OVzORg5CZdo+mLMDmuNm36UpcOifizSsKHxPXLKrIWzAqMdwmcb4cEFd/8INzwIVh3p7YJinTG01hs1++rpNiMJr7D61UqrVVmgx//lfWS4HCI+NLXgToGjiwO0ktWmuYCE6c1gS6XVN0WrqOuVOJKMPUuXDiuRn/Bcg1YJ05XmbdgpSbCtfNxZU2jLr6tO9JDo7DoF9SWGeur+3h187V3kV/piDq7l0SyWjcKqRgmZJaIpjtf/ZjaKES9zvbfha2fVCa4Ehz9Hvzgz2HyHWVAJgvLN8F7/6PnsbI9cPefwk331eM/cxD+aS8ULqikZnthxVa454vK3Nlp+NZndRFcGXb+Hmz+uOa0zcRGzLtB3BKcomlPvqUM46/W25WZCfjPv4Q122HpBjj7GnzncypFtdWHt56vhge5fiheacZ/6YQ/jlMVLE7Cse/D9/8E7v1rvX/5tCbpzrelIlGzibJZTZus9blZ8xUfrEUyTGDFZk2Evbx+L17R9MeV1LtNnfElo08N+44nVKXqJhUyQ+vB2t1w5x/Cym16z5UU99v/lZjEKMoBqbGD+r3NDarAoUeDsbB8I+x9SpnxzO/oJMRp8Dn5Lowf1AkaCxv3aFHQZuH6u1V9i5PRoy8fg/u/rDWqWx6AJx+CqbPa59RPYHR7itmIQZxpirOqcqH32wgdkoExaszzQ9opMNAiapBLBf+MqPhbZ5vVYxoDC1aoJEYxy4g6i54h8Hr9MGSNOgpxasfagThetBGUkoxjRplgrJ/qBCP5rt7rUdUL4MSPNUgtl+Ddn8ec6jNaeS1cADer9uvS29XHPQtTzikheM6FR3ZRoX83UjKDBqPD6zW9cWU48pxKWt8IHNnn54YtNP3sYXj6E7DuV+DYv8P0eSUu0wMrNqUltMOgNKqzJIneQiKOSqnMv6wHO5/QpLlwHmamtIJqMjWV1WY0FZi9AuOH4Mxhv70v8Wt3wOrt4TREQeDIQqdSIzRWnFC5Kh7P+Zf/3SXzhkHJNj+o9iTbW6U126d2q2dQ74PGRb/6F+oIMlmVsFwfbLgfBlcqnvxgNYL3ehVvz0JYfy8suUUZJE7v33gvfODzKp0AuYEqLZl8HMPCj0wFlWLnHOYLOyday1/D00Wjlt/6Si/5geYlc2W4ck7jKePXvgaW6rNJ31MF9xcsU9TlGW0/dVZtVs9C7VO4oNG3zWj0nR/SvHD2SpURNgsTp6A0o8l631JdiIyntFw+XbV9fcPKtKY6nMCPn5zl+S/HH3RLFsHXbYVFt7ZWV7V3sd/b+MSJ2qi+4ep9PSSrXs9mdSIi+sx6Konib4VZq/f7l1THDyad7/cDGVt1KKDqPLiiutbWhjCqZk6JbJZrYYOqMVkVUUub5XtAGlOKqPstnoVNLPTYUsQ+gDFgEmzXp/EDnmvgaGCIDaa+Ium/MOzKQqkIMSbgmgFxMDPp2vOG4v+p1OYbBGmmIFy5KPQvnsedhi5CuSScPe4o18lYmCsVPYAbf1U9Y2HCcfpwqYuFt/mF944LZ95wCfJikjKr2rE0K+x/tsjls9c+t8ol2P/1WSbPQ10QGAHhzHIuJO7yYyyBM2+U+dE/zlAqdiOenx8QB2+8UOL152cpzbgEAhNVdWhKdepP0cxOw6HvFLEWdn4yT/9iO6+bpWlABEozwqHvlnjhK0UKlyVx9betw2wiULgsvLxvhvE3S9z+cJ7lN3v0Lww7Xff+4KJzwvSEcGlc+NnXi7z5YomZSdEXPRNC2yf/pAzTU8L/7ne883qJ3iFDrlfPP9Qn4Z0wq8UGZUibYNiwKYmD2Rlh+rIwPSl1L0YlhTYO4NYT4MQwPSEULgd4aneBjN++fYaloe9q/zZOG6+j1H4zIatYH3pLELjNAXTz5HUYJJSsVurQWIpNVx+72tLQClK/uxOfSMdNpqF/w+SDn1VqHCVoFaRb7w830Bp8NWxFavzmRF3rhsqrNH0I/Vq1dCklreuSGe47APASVT7n8EcU0u+QtypGdsjIBtSJbFatbM2njUkLHb8Q0bgj3Yiwyoua+KWbBLyvIIE9rpluU+jgKj8uWf3xw2tJmlJBynWvkyxjmndl4VqWJhPDkJShQ13XLjNlXiWyEgx3j4a6snK3jfhVl8g59uRe2HDpJin+rkxg37pCl4+6BbLaFLQODFEMCmhsdxG78Jq3qU+uuylMsbgkpE10p04l/eq/E5/yp+IaOsckF3NrE7vyJmtL6AB9pErPk3MOCUq7vFpxP2DcQjrq9i3DW8QOn0QYAgriWob+VMGcufw5kJA0c4lrGWqzUqlmjN34/xT9t3iT1Ye4uZowj1SFOL5fS8w0cu3mMnMO/wc3yZbERhTPawAAAABJRU5ErkJggg==" alt="Logo Tu Habi">
+</div>
+
+<header>
+  <div>
+    <div class="brand-eyebrow">Tuhabi México &amp; Habi Colombia</div>
+    <h1>Tablero Operativo de Riesgo</h1>
+  </div>
+  <div class="filters">
+    <select id="filterMarca">
+      <option value="all">Todas las marcas</option>
+      <option value="Tuhabi México">Tuhabi México</option>
+      <option value="Habi Colombia">Habi Colombia</option>
+    </select>
+    <select id="filterArea">
+      <option value="all">Todas las áreas</option>
+      <option value="Trámites Sellers">Trámites Sellers</option>
+      <option value="Trámites Buyers">Trámites Buyers</option>
+      <option value="Trámites Inmobiliaria">Trámites Inmobiliaria</option>
+    </select>
+    <select id="filterCliente">
+      <option value="all">Todos los clientes</option>
+      <option value="Vendedor">Vendedor</option>
+      <option value="Comprador">Comprador</option>
+      <option value="Broker">Broker</option>
+      <option value="No identificado">No identificado</option>
+    </select>
+    <select id="filterProceso">
+      <option value="all">Todos los procesos</option>
+      <option value="Compra">Compra</option>
+      <option value="Venta">Venta</option>
+    </select>
+    <select id="filterPeriodo">
+      <option value="all">Todo el histórico</option>
+      <option value="dia">Hoy</option>
+      <option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option>
+      <option value="anio">Este año</option>
+      <option value="personalizada">Personalizada…</option>
+    </select>
+    <span id="customDateRange" style="display:none; gap:8px; align-items:center;">
+      <input type="date" id="filterFechaInicio">
+      <span style="color:var(--text-dim); font-size:12px;">a</span>
+      <input type="date" id="filterFechaFin">
+    </span>
+    <button class="ghost" id="btnDiccionario">🗂️ Diccionario de nombres</button>
+    <div style="position:relative; display:inline-block;">
+      <button class="ghost" id="btnMoreOptions">⚙️ Más opciones</button>
+      <div id="moreOptionsMenu" style="display:none; position:absolute; top:110%; left:0; z-index:40; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:6px; min-width:220px; box-shadow:0 8px 20px rgba(0,0,0,.4);">
+        <button class="ghost" id="btnImport" style="text-align:left;">📥 Importar datos</button>
+        <button class="ghost" id="btnClearCache" style="text-align:left;" title="Borra los tickets guardados en este navegador y vuelve a los datos demo">🗑️ Borrar datos guardados</button>
+        <button class="ghost" id="btnTestChat" style="text-align:left;">🔔 Probar notificación Chat</button>
+      </div>
+    </div>
+    <button class="primary" id="btnAddTicket">+ Agregar ticket</button>
+  </div>
+</header>
+
+<section class="kpi-bar">
+  <div class="kpi-card kpi-violet">
+    <div class="kpi-num" id="kpiTotal">0</div>
+    <div class="kpi-lbl">Total Tickets (Todos los estados)</div>
+  </div>
+  <div class="kpi-card kpi-amber" id="kpiAnalistasCard" style="cursor:pointer;" title="Clic para ver a todos los analistas en riesgo (no solo el Top 10)">
+    <div class="kpi-num" id="kpiAnalistas">0</div>
+    <div class="kpi-lbl">Analistas en Riesgo</div>
+  </div>
+  <div class="kpi-card kpi-coral">
+    <div class="kpi-num" id="kpiPqr">0</div>
+    <div class="kpi-lbl">Derechos de Petición (PQR CO)</div>
+  </div>
+  <div class="kpi-card kpi-red">
+    <div class="kpi-num" id="kpiAreas">0</div>
+    <div class="kpi-lbl">Áreas en Alerta</div>
+  </div>
+</section>
+
+<section>
+  <div class="section-title"><h2>Riesgo Agregado por Área</h2><span class="count-chip" id="areaCount">0 áreas</span></div>
+  <div class="section-hint">Haz clic en una tarjeta para ver los NIDs de esa área junto con su colaborador.</div>
+  <div class="area-grid" id="areaGrid"></div>
+  <div id="areaDrilldown"></div>
+</section>
+
+<section>
+  <div class="section-title"><h2 id="rankingTitle">Ranking de Colaboradores (Top 10)</h2><span class="count-chip" id="analystCount">0 colaboradores</span></div>
+  <div class="section-hint">Ordenado por volumen de tickets activos. Las filas en rojo requieren notificación inmediata al gerente responsable.</div>
+  <table>
+    <thead><tr>
+      <th>#</th><th>Colaborador</th><th>Marca / Área</th><th>Tickets</th><th>Progreso</th><th>Estado</th><th>Gerente responsable</th><th></th>
+    </tr></thead>
+    <tbody id="analystBody"></tbody>
+  </table>
+  <div id="collabDrilldown"></div>
+</section>
+
+<section>
+  <div class="section-title"><h2>Detalle de Casos — Quejas y Reclamos</h2><span class="count-chip" id="pqrCount">0 casos</span></div>
+  <div class="section-hint">Busca por NID, colaborador, categoría o ID de ticket. Haz clic en un resultado para ver el detalle completo.</div>
+  <input type="text" id="caseSearch" placeholder="Buscar por NID, Colaborador, ID de ticket o Área..." style="width:100%;margin-bottom:14px;">
+  <div class="case-list" id="pqrList"></div>
+  <datalist id="colabDatalist"></datalist>
+</section>
+
+<footer>Datos de ejemplo cargados para demostración · Usa "Importar datos" para subir tu exportación real de Zendesk (CSV o JSON) · Resúmenes generados con la API de Claude</footer>
+
+<!-- MODAL: Agregar ticket -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3>Agregar ticket</h3>
+    <div class="grid2">
+      <div class="field"><label>Marca</label>
+        <select id="f_marca"><option>Tuhabi México</option><option>Habi Colombia</option></select>
+      </div>
+      <div class="field"><label>Área Responsable</label>
+        <select id="f_area"><option>Trámites Sellers</option><option>Trámites Buyers</option><option>Trámites Inmobiliaria</option></select>
+      </div>
+      <div class="field"><label>Tipo de Cliente</label>
+        <select id="f_tipocliente"><option>Vendedor</option><option>Comprador</option><option>Broker</option><option>No identificado</option></select>
+      </div>
+      <div class="field"><label>Motivo</label>
+        <select id="f_motivo"><option>Queja</option><option>Reclamo</option></select>
+      </div>
+      <div class="field"><label>Proceso</label>
+        <select id="f_proceso"><option>Compra</option><option>Venta</option></select>
+      </div>
+      <div class="field"><label>Ticket ID</label><input id="f_id" placeholder="Ej. 10234"></div>
+      <div class="field"><label>NID</label><input id="f_nid" placeholder="Ej. NID-CO-58231"></div>
+      <div class="field"><label>Colaborador</label><input id="f_colaborador" placeholder="Nombre del colaborador"></div>
+      <div class="field"><label>Categoría / Tipo de problema</label><input id="f_categoria" placeholder="Ej. Financiamiento"></div>
+      <div class="field"><label>Subcategoría (si aplica)</label><input id="f_subcategoria" placeholder="Ej. Crédito hipotecario"></div>
+      <div class="field"><label>¿Es Derecho de Petición? (solo Colombia)</label>
+        <select id="f_derechopeticion"><option value="false">No</option><option value="true">Sí</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Descripción / motivo detallado</label><textarea id="f_desc" placeholder="Detalle del caso..."></textarea></div>
+    <div class="modal-actions">
+      <button class="ghost" id="btnCancel">Cancelar</button>
+      <button class="primary" id="btnSave">Guardar ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Diccionario de nombres -->
+<div class="modal-backdrop" id="dictBackdrop">
+  <div class="modal">
+    <h3>Diccionario de homologación de colaboradores</h3>
+    <p style="font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">
+      Cada vez que importes un CSV, si el nombre del colaborador coincide (sin importar mayúsculas) con la columna "Como viene en Zendesk", se reemplaza automáticamente por el "Nombre real". Se guarda en este navegador, no se borra al cerrar la página.
+    </p>
+    <div id="dictRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:280px;overflow-y:auto;"></div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button class="ghost small" id="btnAddDictRow">+ Agregar fila</button>
+      <div style="display:flex;gap:10px;">
+        <button class="ghost small" id="btnExportDict">Exportar JSON</button>
+        <button class="ghost small" id="btnImportDict">Importar JSON</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" id="btnCloseDict">Cerrar</button>
+      <button class="primary" id="btnSaveDict">Guardar diccionario</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Importar datos -->
+<div class="modal-backdrop" id="importBackdrop">
+  <div class="modal">
+    <h3>Importar tickets de Zendesk</h3>
+    <p style="font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">
+      Sube el CSV exportado de una Vista de Zendesk (o pega JSON). Reconozco encabezados en español o inglés:
+      <strong>ID, Marca/Brand, Tipo de Cliente, Motivo, Proceso, Categoría/Tipo de problema, Subcategoría, Colaborador/Assignee, Área Responsable/Group, NID, Descripción/Subject.</strong>
+      Si algún encabezado no coincide, ese campo queda como "—" y puedes editarlo luego.
+    </p>
+    <div class="field">
+      <label>Archivo CSV o JSON</label>
+      <input type="file" id="f_importFile" accept=".csv,.json,text/csv,application/json">
+    </div>
+    <div class="field">
+      <label>…o pega el contenido aquí</label>
+      <textarea id="f_importText" placeholder="Pega el CSV o JSON exportado de Zendesk" style="min-height:140px;"></textarea>
+    </div>
+    <div class="field">
+      <label>Modo de importación</label>
+      <select id="f_importMode">
+        <option value="append">Agregar a los tickets actuales</option>
+        <option value="replace">Reemplazar todos los tickets</option>
+      </select>
+    </div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button class="ghost small" id="btnDownloadTemplate">Descargar plantilla CSV</button>
+      <div style="display:flex;gap:10px;">
+        <button class="ghost" id="btnCancelImport">Cancelar</button>
+        <button class="primary" id="btnDoImport">Importar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Plantilla -->
+<div class="modal-backdrop" id="templateBackdrop">
+  <div class="modal">
+    <h3 id="templateTitle">Plantilla de notificación</h3>
+    <div class="template-box" id="templateBody"></div>
+    <div class="modal-actions">
+      <button class="ghost" id="btnCloseTemplate">Cerrar</button>
+      <button class="primary" id="btnCopyTemplate">Copiar plantilla</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copiado al portapapeles</div>
+
+<script>
+// ---------------------------------------------------------------
+// DATA MODEL
+// ---------------------------------------------------------------
+let TICKETS = [
+  // ===== TUHABI MÉXICO — Buyers (Marcela Ortiz -> riesgo rojo) =====
+  {id:"MX-2001", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Financiamiento", subcategoria:"Crédito rechazado", colaborador:"Marcela Ortiz", area:"Trámites Buyers", nid:"NID-MX-70011", desc:"Comprador reclama que su crédito fue rechazado sin explicación clara y solicita alternativas de financiamiento antes de perder el apartado.", dias:0},
+  {id:"MX-2002", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Postventa", subcategoria:"Entrega sin fecha", colaborador:"Marcela Ortiz", area:"Trámites Buyers", nid:"NID-MX-70012", desc:"Comprador se queja de no tener fecha confirmada de entrega tras 3 semanas de espera.", dias:0},
+  {id:"MX-2003", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Postventa", subcategoria:"Garantía", colaborador:"Marcela Ortiz", area:"Trámites Buyers", nid:"NID-MX-70013", desc:"Reclama filtración de agua en propiedad recién entregada y exige reparación bajo garantía.", dias:1},
+  {id:"MX-2004", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Financiamiento", subcategoria:"Documentación incompleta", colaborador:"Marcela Ortiz", area:"Trámites Buyers", nid:"NID-MX-70014", desc:"Se queja de solicitudes repetidas de los mismos documentos por parte de distintos agentes.", dias:2},
+  {id:"MX-2005", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Financiamiento", subcategoria:"Avalúo con retraso", colaborador:"Marcela Ortiz", area:"Trámites Buyers", nid:"NID-MX-70015", desc:"Avalúo con más de 5 días de retraso, comprador amenaza con desistir de la compra.", dias:3},
+  {id:"MX-2006", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Postventa", subcategoria:"Entrega sin fecha", colaborador:"Marcela Ortiz", area:"Trámites Buyers", nid:"NID-MX-70016", desc:"Segundo comprador del mismo proyecto reporta la misma falta de fecha de entrega.", dias:4},
+  {id:"MX-2007", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Financiamiento", subcategoria:"Documentación incompleta", colaborador:"Diego Farías", area:"Trámites Buyers", nid:"NID-MX-70017", desc:"Falta comprobante de ingresos actualizado para continuar el trámite de crédito.", dias:5},
+  {id:"MX-2008", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Postventa", subcategoria:"Garantía", colaborador:"Diego Farías", area:"Trámites Buyers", nid:"NID-MX-70018", desc:"Reclama grietas visibles en fachada detectadas en la inspección final.", dias:6},
+
+  // ===== TUHABI MÉXICO — Sellers =====
+  {id:"MX-3001", marca:"Tuhabi México", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Valuación", subcategoria:"Desacuerdo de precio", colaborador:"Paola Jiménez", area:"Trámites Sellers", nid:"NID-MX-71021", desc:"Vendedor no está de acuerdo con la oferta inicial y solicita una segunda valuación.", dias:7},
+  {id:"MX-3002", marca:"Tuhabi México", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Pagos", subcategoria:"Desembolso con retraso", colaborador:"Paola Jiménez", area:"Trámites Sellers", nid:"NID-MX-71022", desc:"Se queja de que el desembolso de la venta lleva 3 días de retraso.", dias:8},
+  {id:"MX-3003", marca:"Tuhabi México", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Valuación", subcategoria:"Desacuerdo de precio", colaborador:"Gonzalo Ibarra", area:"Trámites Sellers", nid:"NID-MX-71023", desc:"Vendedor exige revisión de la oferta tras obtener un avalúo externo más alto.", dias:10},
+  {id:"MX-3004", marca:"Tuhabi México", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Documentación", subcategoria:"Firma pendiente", colaborador:"Gonzalo Ibarra", area:"Trámites Sellers", nid:"NID-MX-71024", desc:"Falta la firma del cónyuge en la escritura, el cierre está detenido.", dias:12},
+  {id:"MX-3005", marca:"Tuhabi México", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Pagos", subcategoria:"Desembolso con retraso", colaborador:"Gonzalo Ibarra", area:"Trámites Sellers", nid:"NID-MX-71025", desc:"Segundo vendedor reclamando desembolso pendiente hace más de una semana.", dias:15},
+  {id:"MX-3006", marca:"Tuhabi México", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Documentación", subcategoria:"Error notarial", colaborador:"Gonzalo Ibarra", area:"Trámites Sellers", nid:"NID-MX-71026", desc:"Error tipográfico en la escritura pública que requiere corrección notarial.", dias:18},
+
+  // ===== TUHABI MÉXICO — Property y Gestoría =====
+  {id:"MX-4001", marca:"Tuhabi México", tipoCliente:"No identificado", motivo:"Queja", proceso:"Venta", categoria:"Gestoría", subcategoria:"Trámite predial", colaborador:"Iván Castillo", area:"Trámites Inmobiliaria", nid:"NID-MX-72031", desc:"Se queja de la demora en la actualización del impuesto predial ante el municipio.", dias:20},
+  {id:"MX-4002", marca:"Tuhabi México", tipoCliente:"Broker", motivo:"Reclamo", proceso:"Compra", categoria:"Gestoría", subcategoria:"Certificado de libertad", colaborador:"Iván Castillo", area:"Trámites Inmobiliaria", nid:"NID-MX-72032", desc:"Broker reclama que el certificado de libertad de gravamen no se ha tramitado a tiempo.", dias:25},
+  {id:"MX-4003", marca:"Tuhabi México", tipoCliente:"No identificado", motivo:"Queja", proceso:"Venta", categoria:"Property", subcategoria:"Mantenimiento", colaborador:"Laura Núñez", area:"Trámites Inmobiliaria", nid:"NID-MX-72033", desc:"Se reporta falta de mantenimiento en propiedad en inventario antes de su reventa.", dias:28},
+
+  // ===== TUHABI MÉXICO — Entregas y Postventas =====
+  {id:"MX-5001", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Entregas", subcategoria:"Retraso de llaves", colaborador:"Renata Solís", area:"Entregas y Postventas", nid:"NID-MX-73041", desc:"Reclama que la entrega de llaves lleva más de 10 días de retraso sobre lo pactado.", dias:30},
+  {id:"MX-5002", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Postventas", subcategoria:"Desperfecto eléctrico", colaborador:"Renata Solís", area:"Entregas y Postventas", nid:"NID-MX-73042", desc:"Reporta falla eléctrica intermitente detectada la semana de entrega.", dias:35},
+  {id:"MX-5003", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Entregas", subcategoria:"Inventario incompleto", colaborador:"Renata Solís", area:"Entregas y Postventas", nid:"NID-MX-73043", desc:"El inventario de entrega no coincide con lo pactado en el contrato.", dias:40},
+  {id:"MX-5004", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Postventas", subcategoria:"Desperfecto eléctrico", colaborador:"Renata Solís", area:"Entregas y Postventas", nid:"NID-MX-73044", desc:"Segundo comprador del mismo edificio reporta fallas eléctricas similares.", dias:45},
+  {id:"MX-5005", marca:"Tuhabi México", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Entregas", subcategoria:"Retraso de llaves", colaborador:"Héctor Bravo", area:"Entregas y Postventas", nid:"NID-MX-73045", desc:"Reclama entrega de llaves fuera de la fecha comprometida por escrito.", dias:50},
+
+  // ===== HABI COLOMBIA — Sellers (Ricardo Mora -> riesgo rojo) =====
+  {id:"CO-3001", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Pagos", subcategoria:"Suma no consignada", colaborador:"Ricardo Mora", area:"Trámites Sellers", nid:"NID-CO-58231", desc:"El vendedor exige copia del comprobante de pago y explicación sobre por qué no se ha consignado la totalidad del valor de la venta 18 días después del cierre notarial.", dias:55, esDerechoPeticion:true},
+  {id:"CO-3002", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Valuación", subcategoria:"Ajuste de oferta", colaborador:"Ricardo Mora", area:"Trámites Sellers", nid:"NID-CO-58232", desc:"Solicita revisión de la oferta tras un avalúo externo con valor superior.", dias:60, esDerechoPeticion:false},
+  {id:"CO-3003", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Pagos", subcategoria:"Desembolso con retraso", colaborador:"Ricardo Mora", area:"Trámites Sellers", nid:"NID-CO-58233", desc:"Reclama desembolso con retraso de 4 días hábiles sobre lo acordado.", dias:65, esDerechoPeticion:false},
+  {id:"CO-3004", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Documentación", subcategoria:"Firma pendiente", colaborador:"Ricardo Mora", area:"Trámites Sellers", nid:"NID-CO-58234", desc:"Falta la firma del cónyuge en la escritura, el trámite está detenido.", dias:70, esDerechoPeticion:false},
+  {id:"CO-3005", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Documentación", subcategoria:"Error notarial", colaborador:"Ricardo Mora", area:"Trámites Sellers", nid:"NID-CO-58235", desc:"Error tipográfico en la escritura pública que requiere corrección urgente.", dias:75, esDerechoPeticion:false},
+  {id:"CO-3006", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Pagos", subcategoria:"Desembolso con retraso", colaborador:"Ricardo Mora", area:"Trámites Sellers", nid:"NID-CO-58236", desc:"Otro vendedor con desembolso pendiente desde hace más de una semana.", dias:80, esDerechoPeticion:false},
+  {id:"CO-3007", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Valuación", subcategoria:"Desacuerdo de oferta", colaborador:"Diana Castro", area:"Trámites Sellers", nid:"NID-CO-58237", desc:"No está de acuerdo con la oferta final y solicita reconsideración.", dias:85, esDerechoPeticion:false},
+  {id:"CO-3008", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Documentación", subcategoria:"Firma pendiente", colaborador:"Diana Castro", area:"Trámites Sellers", nid:"NID-CO-58238", desc:"Reclama demoras reiteradas en la revisión de documentos de la venta.", dias:90, esDerechoPeticion:false},
+
+  // ===== HABI COLOMBIA — Buyers (Camila Rueda -> riesgo rojo) =====
+  {id:"CO-2001", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Financiamiento", subcategoria:"Crédito hipotecario negado", colaborador:"Camila Rueda", area:"Trámites Buyers", nid:"NID-CO-58121", desc:"El comprador exige que se le informe por escrito la razón puntual de la negación de su crédito hipotecario, con 20 días transcurridos sin respuesta formal y pérdida de la opción de compra.", dias:0, esDerechoPeticion:true},
+  {id:"CO-2002", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Postventa", subcategoria:"Entrega con retraso", colaborador:"Camila Rueda", area:"Trámites Buyers", nid:"NID-CO-58122", desc:"Reporta retraso en la entrega del inmueble frente a la fecha acordada.", dias:0, esDerechoPeticion:false},
+  {id:"CO-2003", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Financiamiento", subcategoria:"Documentación", colaborador:"Camila Rueda", area:"Trámites Buyers", nid:"NID-CO-58123", desc:"Falta certificado laboral para continuar el trámite de crédito hipotecario.", dias:1, esDerechoPeticion:false},
+  {id:"CO-2004", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Postventa", subcategoria:"Desperfecto estructural", colaborador:"Camila Rueda", area:"Trámites Buyers", nid:"NID-CO-58124", desc:"Reporta grietas en un muro de la vivienda recién entregada.", dias:2, esDerechoPeticion:false},
+  {id:"CO-2005", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Postventa", subcategoria:"Entrega con retraso", colaborador:"Camila Rueda", area:"Trámites Buyers", nid:"NID-CO-58125", desc:"Segundo caso de retraso en entrega del mismo proyecto.", dias:3, esDerechoPeticion:false},
+  {id:"CO-2006", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Financiamiento", subcategoria:"Cambio de tasa", colaborador:"Camila Rueda", area:"Trámites Buyers", nid:"NID-CO-58126", desc:"Consulta y se queja por un cambio en la tasa de interés inicialmente pactada.", dias:4, esDerechoPeticion:false},
+
+  // ===== HABI COLOMBIA — Property y Gestoría (sin gerente asignado en el directorio) =====
+  {id:"CO-4001", marca:"Habi Colombia", tipoCliente:"No identificado", motivo:"Queja", proceso:"Venta", categoria:"Gestoría", subcategoria:"Trámite catastral", colaborador:"Andrea Salazar", area:"Trámites Inmobiliaria", nid:"NID-CO-59011", desc:"Se queja de la demora en el trámite catastral necesario para el cierre de la venta.", dias:5, esDerechoPeticion:true},
+  {id:"CO-4002", marca:"Habi Colombia", tipoCliente:"Broker", motivo:"Reclamo", proceso:"Compra", categoria:"Gestoría", subcategoria:"Paz y salvo", colaborador:"Andrea Salazar", area:"Trámites Inmobiliaria", nid:"NID-CO-59012", desc:"Broker reclama que el paz y salvo de administración no se ha gestionado a tiempo.", dias:6, esDerechoPeticion:false},
+
+  // ===== HABI COLOMBIA — Entregas y Postventas =====
+  {id:"CO-5001", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Entregas", subcategoria:"Retraso de llaves", colaborador:"Julián Torres", area:"Entregas y Postventas", nid:"NID-CO-59101", desc:"Reclama entrega de llaves con más de una semana de retraso sobre lo pactado.", dias:7, esDerechoPeticion:true},
+  {id:"CO-5002", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Postventas", subcategoria:"Desperfecto hidráulico", colaborador:"Julián Torres", area:"Entregas y Postventas", nid:"NID-CO-59102", desc:"Reporta fuga de agua detectada en la revisión final antes de la entrega.", dias:8, esDerechoPeticion:false},
+  {id:"CO-5003", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Reclamo", proceso:"Compra", categoria:"Entregas", subcategoria:"Inventario incompleto", colaborador:"Julián Torres", area:"Entregas y Postventas", nid:"NID-CO-59103", desc:"El inventario de entrega no coincide con lo especificado en el contrato de compraventa.", dias:10, esDerechoPeticion:false},
+  {id:"CO-5004", marca:"Habi Colombia", tipoCliente:"Comprador", motivo:"Queja", proceso:"Compra", categoria:"Postventas", subcategoria:"Desperfecto hidráulico", colaborador:"Julián Torres", area:"Entregas y Postventas", nid:"NID-CO-59104", desc:"Segundo comprador del mismo edificio reporta fugas de agua similares.", dias:12, esDerechoPeticion:false},
+
+  // ===== ÁREA COMERCIAL — Sellers México y Colombia =====
+  {id:"MX-6001", marca:"Tuhabi México", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Comercial", subcategoria:"Seguimiento de oferta", colaborador:"Fabiola Mendieta", area:"Comercial Sellers", nid:"NID-MX-74051", desc:"Vendedor se queja de falta de seguimiento comercial tras la visita inicial al inmueble.", dias:15},
+  {id:"MX-6002", marca:"Tuhabi México", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Comercial", subcategoria:"Promesa de venta", colaborador:"Fabiola Mendieta", area:"Comercial Sellers", nid:"NID-MX-74052", desc:"Reclama que se le prometió un tiempo de venta que no se ha cumplido.", dias:18},
+  {id:"CO-6001", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Queja", proceso:"Venta", categoria:"Comercial", subcategoria:"Seguimiento de oferta", colaborador:"Esteban Rico", area:"Comercial Sellers", nid:"NID-CO-59201", desc:"Se queja de la falta de comunicación del equipo comercial tras la oferta inicial.", dias:20, esDerechoPeticion:true},
+  {id:"CO-6002", marca:"Habi Colombia", tipoCliente:"Vendedor", motivo:"Reclamo", proceso:"Venta", categoria:"Comercial", subcategoria:"Promesa de venta", colaborador:"Esteban Rico", area:"Comercial Sellers", nid:"NID-CO-59202", desc:"Reclama incumplimiento del tiempo de venta prometido por el equipo comercial.", dias:25, esDerechoPeticion:false},
+];
+
+// Calcula la fecha real de cada ticket a partir de "dias" (días atrás desde hoy)
+TICKETS.forEach(t=>{
+  const d = new Date();
+  d.setDate(d.getDate() - (t.dias || 0));
+  t.fecha = d.toISOString().slice(0,10);
+});
+
+// Si hay un CSV importado previamente guardado en este navegador, lo carga en vez de los datos demo
+let usandoDatosGuardados = false;
+try{
+  const cached = localStorage.getItem("habi_tickets_cache");
+  if(cached){
+    const parsed = JSON.parse(cached);
+    if(Array.isArray(parsed) && parsed.length > 0){
+      TICKETS = parsed;
+      usandoDatosGuardados = true;
+    }
+  }
+}catch(e){ /* si falla, se queda con los datos demo */ }
+function guardarTicketsEnCache(){
+  try{
+    // Solo se guardan los tickets que el tablero realmente usa (autorizados),
+    // para no exceder el límite de almacenamiento del navegador (~5MB) con filas
+    // de Brokers u otras áreas que de todas formas se descartan en cada vista.
+    const paraGuardar = TICKETS.filter(isAuthorized);
+    localStorage.setItem("habi_tickets_cache", JSON.stringify(paraGuardar));
+  }catch(e){
+    console.error("Error guardando cache:", e);
+    alert("No se pudieron guardar los tickets en este navegador (probablemente el archivo excede el límite de almacenamiento local). Vas a tener que volver a importar el CSV cada vez que refresques la página.\n\nDetalle: " + e.message);
+  }
+}
+
+// ---------------------------------------------------------------
+// DIRECTORIO DE LÍDERES Y ÁREAS AUTORIZADAS
+// Cualquier área que no esté en este mapa se ignora (viene de BigQuery filtrada).
+// ---------------------------------------------------------------
+const AUTHORIZED_MAP = {
+  "Tuhabi México": {
+    "Trámites Sellers": "Luis Martín Nájera",
+    "Trámites Buyers": "Luis Martín Nájera",
+    "Trámites Inmobiliaria": "Joaquín Muñoz Santos",
+  },
+  "Habi Colombia": {
+    "Trámites Sellers": "Christina Muñoz",
+    "Trámites Buyers": "Viviana Castillo",
+    "Trámites Inmobiliaria": "Viviana Castillo",
+  },
+};
+// Ana Alonso: Dirección General / Supervisión México — nivel directivo, no se asigna
+// como gerente operativo de ninguna área ni recibe alertas automáticas de tickets.
+const DIRECCION_GENERAL_MEXICO = "Ana Alonso";
+function getGerente(marca, area){
+  return (AUTHORIZED_MAP[marca] && AUTHORIZED_MAP[marca][area]) || "Sin gerente asignado — definir responsable";
+}
+function isAuthorized(t){
+  // Brokers Habi / Brokers Tuhabi ya no se homologan a la marca directa (ver normalizeMarca),
+  // así que nunca calzan con AUTHORIZED_MAP y quedan excluidos automáticamente aquí.
+  return !!(AUTHORIZED_MAP[t.marca] && AUTHORIZED_MAP[t.marca][t.area]);
+}
+function isActiveTicket(t){
+  return true; // se cuenta el volumen total del mes: closed, hold, open y pending por igual
+}
+
+let filters = {marca:"all", area:"all", cliente:"all", proceso:"all", periodo:"all", fechaInicio:"", fechaFin:""};
+
+// ---------------------------------------------------------------
+// RISK LOGIC
+// ---------------------------------------------------------------
+function analystZone(n){
+  if(n > 5) return "red";
+  if(n >= 4) return "amber";
+  return "green";
+}
+function areaZone(n){
+  if(n > 25) return "red";
+  if(n >= 15) return "amber";
+  return "green";
+}
+const ZONE_COLOR = {green:"var(--green)", amber:"var(--amber)", red:"var(--red)"};
+const ZONE_LABEL_AREA = {green:"Área Estable", amber:"Área en Atención", red:"Área en Riesgo"};
+const ZONE_LABEL_ANALYST = {green:"Verde", amber:"Amarillo", red:"Rojo — Riesgo individual"};
+
+function enPeriodo(t){
+  const dias = t.dias || 0;
+  const periodo = filters.periodo;
+  if(periodo === "all") return true;
+  if(periodo === "dia") return dias <= 0;
+  if(periodo === "semana") return dias <= 7;
+  if(periodo === "mes") return dias <= 31;
+  if(periodo === "anio") return dias <= 365;
+  if(periodo === "personalizada"){
+    const fecha = t.fecha || "";
+    if(filters.fechaInicio && fecha < filters.fechaInicio) return false;
+    if(filters.fechaFin && fecha > filters.fechaFin) return false;
+    return true;
+  }
+  return true;
+}
+
+function applyFilters(list){
+  return list.filter(t=>
+    isAuthorized(t) &&
+    isActiveTicket(t) &&
+    (filters.marca==="all" || t.marca===filters.marca) &&
+    (filters.area==="all" || t.area===filters.area) &&
+    (filters.cliente==="all" || t.tipoCliente===filters.cliente) &&
+    (filters.proceso==="all" || t.proceso===filters.proceso) &&
+    enPeriodo(t)
+  );
+}
+
+function groupBy(list, keys){
+  const map = new Map();
+  for(const t of list){
+    const k = keys.map(k=>t[k]).join("|");
+    if(!map.has(k)) map.set(k, []);
+    map.get(k).push(t);
+  }
+  return map;
+}
+
+// ---------------------------------------------------------------
+// RENDER: AREA GAUGES
+// ---------------------------------------------------------------
+let expandedAreaKey = null;
+
+function renderAreas(){
+  const filtered = applyFilters(TICKETS);
+  const groups = groupBy(filtered, ["marca","area"]);
+  const grid = document.getElementById("areaGrid");
+  grid.innerHTML = "";
+  const sorted = [...groups.entries()].sort((a,b)=> b[1].length - a[1].length);
+  for(const [key, tickets] of sorted){
+    const [marca, area] = key.split("|");
+    const n = tickets.length;
+    const zone = areaZone(n);
+    const scaleMax = 35;
+    const pct = Math.min(n/scaleMax, 1);
+    const r = 34, circ = 2*Math.PI*r;
+    const dash = circ * pct;
+    const tick15 = circ * (15/scaleMax);
+    const tick25 = circ * (25/scaleMax);
+    const gerente = getGerente(marca, area);
+    const isOpen = expandedAreaKey === key;
+    grid.insertAdjacentHTML("beforeend", `
+      <div class="area-card zone-${zone}" data-areakey="${encodeURIComponent(key)}" style="cursor:pointer;${isOpen ? 'outline:2px solid var(--violet);' : ''}">
+        <div class="gauge-wrap">
+          <svg width="78" height="78" viewBox="0 0 78 78">
+            <circle cx="39" cy="39" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="7"/>
+            <circle cx="39" cy="39" r="${r}" fill="none" stroke="${ZONE_COLOR[zone]}" stroke-width="7"
+              stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+            <circle cx="39" cy="39" r="${r}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"
+              stroke-dasharray="1 ${circ-1}" stroke-dashoffset="${-tick15}"/>
+            <circle cx="39" cy="39" r="${r}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"
+              stroke-dasharray="1 ${circ-1}" stroke-dashoffset="${-tick25}"/>
+          </svg>
+          <div class="gauge-num"><span class="n">${n}</span><span class="lbl">tickets</span></div>
+        </div>
+        <div class="meta">
+          <div class="marca-label">${marca}</div>
+          <div class="area-name">${area}</div>
+          <div class="gerente-name">${gerente}</div>
+          <div class="status-word" style="color:${ZONE_COLOR[zone]}">${ZONE_LABEL_AREA[zone]}</div>
+          ${zone==="red" ? `<div><span class="risk-badge">🚨 Requiere Revisión Operativa</span></div>` : ""}
+          ${zone==="red" ? `<button class="small primary" data-tpl="area" data-key="${encodeURIComponent(key)}" style="margin-top:8px;">🚨 Notificar a ${gerente.split(" — ")[0]}</button>` : ""}
+        </div>
+      </div>
+    `);
+  }
+  document.getElementById("areaCount").textContent = `${sorted.length} área(s)`;
+  renderAreaDrilldown();
+}
+
+function renderAreaDrilldown(){
+  const box = document.getElementById("areaDrilldown");
+  if(!expandedAreaKey){ box.innerHTML = ""; return; }
+  const [marca, area] = expandedAreaKey.split("|");
+  const tickets = applyFilters(TICKETS).filter(t=> t.marca===marca && t.area===area);
+  const rows = tickets.map(t=>{
+    const dpTag = marca === "Habi Colombia"
+      ? `<span class="tag ${t.esDerechoPeticion ? 'violet' : ''}">${t.esDerechoPeticion ? "Derecho de Petición: Sí" : "Derecho de Petición: No"}</span>`
+      : "";
+    return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span class="tag nid">${t.nid}</span>
+      <span class="tag">${t.id}</span>
+      <span class="tag">Colaborador: ${t.colaborador}</span>
+      ${dpTag}
+    </div>`;
+  }).join("");
+  box.innerHTML = `
+    <div class="case-card" style="margin-top:14px;">
+      <div class="case-head">
+        <div><strong>NIDs en ${area} · ${marca}</strong> — ${tickets.length} ticket(s)</div>
+        <button class="small ghost" id="btnCloseDrilldown">Cerrar</button>
+      </div>
+      ${rows || '<div class="empty-note">Sin tickets para esta área con los filtros actuales.</div>'}
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------
+// RENDER: ANALYST TABLE
+// ---------------------------------------------------------------
+// RENDER: RANKING DE COLABORADORES (tabla única)
+// ---------------------------------------------------------------
+let expandedCollabKey = null;
+
+let verSoloEnRiesgo = false;
+
+function renderAnalysts(){
+  const filtered = applyFilters(TICKETS).filter(t=> t.colaborador && t.colaborador !== "Sin asignar");
+  const groups = groupBy(filtered, ["colaborador","marca","area"]);
+  const body = document.getElementById("analystBody");
+  body.innerHTML = "";
+  const scaleMax = 10;
+  let rows = [...groups.entries()].sort((a,b)=> b[1].length - a[1].length);
+  if(verSoloEnRiesgo){
+    rows = rows.filter(([key, tickets])=> analystZone(tickets.length) === "red");
+  }else{
+    rows = rows.slice(0,10);
+  }
+  rows.forEach(([key, tickets], idx)=>{
+    const [colaborador, marca, area] = key.split("|");
+    const n = tickets.length;
+    const zone = analystZone(n);
+    const pct = Math.min(n/scaleMax,1)*100;
+    const tick3 = (3/scaleMax)*100;
+    const tick5 = (5/scaleMax)*100;
+    const gerente = getGerente(marca, area);
+    const rowStyle = zone === "red" ? "background:var(--red-dim);" : "";
+    body.insertAdjacentHTML("beforeend", `
+      <tr style="${rowStyle}">
+        <td class="mono" style="color:var(--text-dim);">#${idx+1}</td>
+        <td><strong data-collabkey="${encodeURIComponent(key)}" style="cursor:pointer;text-decoration:underline dotted;">${colaborador}</strong></td>
+        <td>${marca}<br><span style="color:var(--text-dim);font-size:11px;">${area}</span></td>
+        <td class="rail-num" style="font-size:14px;font-weight:700;">${n}</td>
+        <td>
+          <div style="display:flex;align-items:center;">
+            <div class="rail">
+              <div class="rail-fill ${zone}" style="width:${pct}%"></div>
+              <div class="rail-tick" style="left:${tick3}%"></div>
+              <div class="rail-tick" style="left:${tick5}%"></div>
+            </div>
+          </div>
+        </td>
+        <td><span class="dot ${zone}"></span>${ZONE_LABEL_ANALYST[zone]}</td>
+        <td class="gerente-chip">${gerente}</td>
+        <td style="white-space:nowrap;">
+          ${zone==="red" ? `<button class="small primary" data-tpl="analyst" data-key="${encodeURIComponent(key)}">🚨 Notificar a ${gerente.split(" — ")[0]}</button>` : ""}
+          <button class="small ghost" data-collabkey="${encodeURIComponent(key)}" style="margin-top:${zone==='red' ? '6px':'0'};">${expandedCollabKey===key ? "▲ Ocultar" : "Ver detalle"}</button>
+        </td>
+      </tr>
+    `);
+  });
+  document.getElementById("rankingTitle").textContent = verSoloEnRiesgo
+    ? "Ranking de Colaboradores (Todos en Riesgo 🔴)"
+    : "Ranking de Colaboradores (Top 10)";
+  document.getElementById("analystCount").textContent = verSoloEnRiesgo
+    ? `${rows.length} en riesgo`
+    : `Top ${rows.length} colaborador(es)`;
+  if(rows.length === 0 && verSoloEnRiesgo){
+    body.innerHTML = `<tr><td colspan="8"><div class="empty-note">Ningún colaborador en zona roja con los filtros actuales.</div></td></tr>`;
+  }
+  renderCollabDrilldown();
+}
+
+function renderCollabDrilldown(){
+  const box = document.getElementById("collabDrilldown");
+  if(!expandedCollabKey){ box.innerHTML = ""; return; }
+  const [colaborador, marca, area] = expandedCollabKey.split("|");
+  const tickets = applyFilters(TICKETS).filter(t=> t.colaborador===colaborador && t.marca===marca && t.area===area);
+  const areasDeLaMarca = Object.keys(AUTHORIZED_MAP[marca] || {});
+  const areaOptions = areasDeLaMarca.map(a=> `<option value="${a}" ${a===area?"selected":""}>${a}</option>`).join("");
+  const rows = tickets.map(t=>{
+    const dpTag = t.marca === "Habi Colombia"
+      ? `<span class="tag ${t.esDerechoPeticion ? 'violet' : ''}">${t.esDerechoPeticion ? "Derecho de Petición" : "No PQR"}</span>`
+      : "";
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <span class="tag nid">${t.nid}</span>
+        <span class="tag">${t.id}</span>
+        <span class="tag">${t.subcategoria}</span>
+        ${dpTag}
+      </div>
+      <div class="ai-resumen show" style="margin-top:6px;">
+        <div class="lbl">Resumen IA</div>
+        <div>${t.resumenIA || "Aún no se ha generado — ábrelo en Detalle de Casos."}</div>
+      </div>
+    </div>`;
+  }).join("");
+  box.innerHTML = `
+    <div class="case-card" style="margin-top:14px;">
+      <div class="case-head">
+        <div><strong>${colaborador}</strong> · ${marca} · ${area} — ${tickets.length} ticket(s)</div>
+        <button class="small ghost" id="btnCloseCollabDrilldown">Cerrar</button>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin:10px 0;">
+        <label style="font-size:12px;color:var(--text-dim);">¿Zendesk tipificó mal el área de estos ${tickets.length} ticket(s)? Corrígelo aquí:</label>
+        <select id="correctAreaSelect">${areaOptions}</select>
+        <button class="small primary" data-fixarea="${encodeURIComponent(expandedCollabKey)}">Aplicar corrección</button>
+      </div>
+      ${rows || '<div class="empty-note">Sin tickets con los filtros actuales.</div>'}
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------
+// RENDER: DETALLE DE CASOS (Quejas y Reclamos)
+// ---------------------------------------------------------------
+let expandedCaseIds = new Set();
+let caseSearchText = "";
+
+function renderPqr(){
+  let cases = applyFilters(TICKETS);
+  const isSearching = caseSearchText.trim() !== "";
+  if(isSearching){
+    const q = caseSearchText.trim().toLowerCase();
+    cases = cases.filter(t=>
+      (t.nid||"").toLowerCase().includes(q) ||
+      (t.id||"").toLowerCase().includes(q) ||
+      (t.colaborador||"").toLowerCase().includes(q) ||
+      (t.area||"").toLowerCase().includes(q) ||
+      (t.categoria||"").toLowerCase().includes(q) ||
+      (t.subcategoria||"").toLowerCase().includes(q) ||
+      (t.tipoCliente||"").toLowerCase().includes(q)
+    );
+  }
+  const totalMatching = cases.length;
+  if(!isSearching) cases = cases.slice(0, 5);
+  const list = document.getElementById("pqrList");
+  list.innerHTML = "";
+  for(const t of cases){
+    const isOpen = expandedCaseIds.has(t.id);
+    const dpTag = t.marca === "Habi Colombia"
+      ? `<span class="tag ${t.esDerechoPeticion ? 'violet' : ''}">${t.esDerechoPeticion ? "Derecho de Petición" : "No es Derecho de Petición"}</span>`
+      : "";
+    list.insertAdjacentHTML("beforeend", `
+      <div class="case-card" id="pqr-${t.id}">
+        <div class="case-head" data-caserow="${t.id}" style="cursor:pointer;">
+          <div>
+            <strong>${t.id}</strong> · ${t.marca}
+            <div class="case-tags">
+              <span class="tag nid">${t.nid}</span>
+              <span class="tag violet">${t.categoria}</span>
+              <span class="tag">Colaborador: ${t.colaborador}</span>
+              <span class="tag">${t.area}</span>
+              ${dpTag}
+            </div>
+          </div>
+          <span style="color:var(--text-dim);font-size:12px;">${isOpen ? "▲ Ocultar" : "▼ Ver detalle"}</span>
+        </div>
+        ${isOpen ? `
+        <div style="margin-top:10px;">
+          <div class="case-tags" style="margin-bottom:8px;">
+            <span class="tag">${t.tipoCliente}</span>
+            <span class="tag">${t.proceso}</span>
+            <span class="tag">${t.motivo}</span>
+            <span class="tag">${t.subcategoria}</span>
+          </div>
+          <div class="case-desc">${t.desc}</div>
+          <button class="small primary" data-genai="${t.id}">✨ Generar resumen IA</button>
+          <div class="ai-resumen ${t.resumenIA ? 'show':''}" id="resumen-${t.id}">
+            <div class="lbl">Resumen IA del Problema</div>
+            <div id="resumen-text-${t.id}">${t.resumenIA || ""}</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-top:10px;">
+            <label style="font-size:12px;color:var(--text-dim);">¿Colaborador asignado incorrectamente? Corrígelo aquí:</label>
+            <input type="text" list="colabDatalist" id="reassignInput-${t.id}" placeholder="Nombre del analista correcto" value="${t.colaborador === 'Sin asignar' ? '' : t.colaborador}" style="flex:1;min-width:180px;">
+            <button class="small primary" data-reassign="${t.id}">Reasignar</button>
+          </div>
+        </div>` : ""}
+      </div>
+    `);
+  }
+  if(!isSearching && totalMatching > 5){
+    list.insertAdjacentHTML("beforeend", `<div class="empty-note">Mostrando 5 de ${totalMatching} casos. Escribe en el buscador para ver el resto.</div>`);
+  }
+  document.getElementById("pqrCount").textContent = `${totalMatching} caso(s)`;
+  if(cases.length===0){
+    list.innerHTML = `<div class="empty-note">No hay casos que coincidan con la búsqueda o los filtros actuales.</div>`;
+  }
+  const nombresConocidos = [...new Set(TICKETS.map(t=>t.colaborador).filter(c=>c && c!=="Sin asignar"))].sort();
+  document.getElementById("colabDatalist").innerHTML = nombresConocidos.map(n=>`<option value="${n}">`).join("");
+}
+
+// ---------------------------------------------------------------
+// TEMPLATES
+// ---------------------------------------------------------------
+function buildAnalystTemplate(colaborador, marca, area){
+  const tickets = TICKETS.filter(t=>t.colaborador===colaborador && t.marca===marca && t.area===area);
+  const gerente = getGerente(marca, area);
+  const desglose = tickets.map(t=>`  • NID ${t.nid} — ${t.subcategoria} — Resumen IA: ${t.resumenIA || "(pendiente de generar)"}`).join("\n");
+  return `Para: ${gerente}
+Asunto: 🔴 Riesgo individual — ${colaborador} (${marca} · ${area})
+
+Hola,
+
+${colaborador} presenta actualmente ${tickets.length} tickets activos de quejas/reclamos, superando el umbral de riesgo individual (> 5 tickets).
+
+Listado de NIDs, subcategorías y resúmenes IA:
+${desglose}
+
+Se solicita revisar la carga de ${colaborador} y definir un plan de redistribución o apoyo inmediato.
+
+— Centro de Riesgo · Habi Support`;
+}
+
+function buildAreaTemplate(marca, area){
+  const tickets = TICKETS.filter(t=>t.marca===marca && t.area===area);
+  const gerente = getGerente(marca, area);
+  const porColaborador = groupBy(tickets, ["colaborador"]);
+  const resumen = [...porColaborador.entries()].map(([c, ts])=> `  • ${c}: ${ts.length} tickets`).join("\n");
+  return `Para: ${gerente}
+Asunto: 🔴 Revisión urgente de procesos — ${area} (${marca})
+
+Hola,
+
+El área de ${area} en ${marca} registra actualmente ${tickets.length} tickets activos de quejas/reclamos, superando el umbral de riesgo estructural (> 25 tickets).
+
+Distribución por colaborador:
+${resumen}
+
+Se solicita una revisión urgente de los procesos del área para identificar cuellos de botella operativos y definir acciones correctivas inmediatas.
+
+— Centro de Riesgo · Habi Support`;
+}
+
+// ---------------------------------------------------------------
+// AI SUMMARY (Anthropic API)
+// ---------------------------------------------------------------
+async function generarResumenIA(ticketId){
+  const t = TICKETS.find(x=>x.id===ticketId);
+  if(!t) return;
+  const btn = document.querySelector(`[data-genai="${ticketId}"]`);
+  const originalLabel = btn.textContent;
+  btn.textContent = "Generando…";
+  btn.disabled = true;
+  try{
+    const prompt = `Eres un asistente de soporte al cliente para una inmobiliaria (Habi). Resume el siguiente caso de ${t.motivo.toLowerCase()} en MÁXIMO 2 frases en español, en tono neutro y profesional, indicando qué solicita o reporta el cliente y el hecho crítico (plazo, monto, tipo de desperfecto, etc). No agregues nada más que el resumen.
+
+NID: ${t.nid}
+Tipo de cliente: ${t.tipoCliente}
+Motivo: ${t.motivo}
+Proceso: ${t.proceso}
+Categoría: ${t.categoria}
+Subcategoría: ${t.subcategoria}
+Descripción original: ${t.desc}`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{role:"user", content: prompt}]
+      })
+    });
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b=>b.type==="text");
+    const resumen = textBlock ? textBlock.text.trim() : "No fue posible generar el resumen.";
+    t.resumenIA = resumen;
+    document.getElementById(`resumen-text-${ticketId}`).textContent = resumen;
+    document.getElementById(`resumen-${ticketId}`).classList.add("show");
+  }catch(err){
+    document.getElementById(`resumen-text-${ticketId}`).textContent = "Error generando el resumen. Intenta de nuevo.";
+    document.getElementById(`resumen-${ticketId}`).classList.add("show");
+  }finally{
+    btn.textContent = originalLabel;
+    btn.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------------
+// IMPORT: CSV / JSON con alias de encabezados de Zendesk
+// ---------------------------------------------------------------
+function normalizeKey(s){
+  return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"").trim();
+}
+// Acceso por letra de columna (A, B, C... D, I, K, L, M...) para fuentes tipo Google Sheet
+// sin encabezados confiables. Usa el orden de aparición de las columnas en la fila.
+function letterToIndex(letter){
+  let n = 0;
+  for(const ch of String(letter).toUpperCase()){
+    n = n*26 + (ch.charCodeAt(0) - 64);
+  }
+  return n - 1; // 0-based
+}
+function getByLetter(obj, letter){
+  const values = Object.values(obj);
+  const v = values[letterToIndex(letter)];
+  return isBlank(v) ? null : String(v).trim();
+}
+// Trata como "vacío" los valores nulos típicos que llegan de BigQuery/pandas al exportar CSV
+function isBlank(v){
+  if(v === undefined || v === null) return true;
+  const s = String(v).trim().toLowerCase();
+  return s === "" || s === "nan" || s === "null" || s === "none" || s === "n/a" || s === "na" || s === "-";
+}
+// Normaliza mayúsculas/espacios para que "margarita" y "MARGARITA" cuenten como la misma persona
+function titleCaseName(s){
+  return String(s).trim().replace(/\s+/g," ").toLowerCase()
+    .replace(/(^|\s|-)([a-záéíóúñü])/g, (m,sep,c)=> sep + c.toUpperCase());
+}
+
+// ---------------------------------------------------------------
+// DICCIONARIO DE HOMOLOGACIÓN DE COLABORADORES
+// Se guarda en localStorage (rápido) Y en la nube vía Apps Script (para que
+// persista incluso cuando el navegador aísla el almacenamiento, como en Google Sites).
+// ---------------------------------------------------------------
+let COLAB_ALIASES = {}; // { "aliascomoloescribieron_normalizado": "Nombre Real" }
+function loadColabAliases(){
+  try{
+    const raw = localStorage.getItem("habi_colab_aliases");
+    COLAB_ALIASES = raw ? JSON.parse(raw) : {};
+  }catch(e){ COLAB_ALIASES = {}; }
+}
+function saveColabAliases(){
+  try{ localStorage.setItem("habi_colab_aliases", JSON.stringify(COLAB_ALIASES)); }catch(e){}
+}
+async function guardarDiccionarioEnNube(){
+  const response = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: {"Content-Type": "text/plain;charset=utf-8"},
+    body: JSON.stringify({action: "saveDict", dict: COLAB_ALIASES})
+  });
+  if(!response.ok) throw new Error("Respuesta HTTP " + response.status);
+  return response.json();
+}
+async function cargarDiccionarioDeNube(){
+  const response = await fetch(APPS_SCRIPT_URL + "?action=getDict&_=" + Date.now(), {cache: "no-store"});
+  if(!response.ok) throw new Error("Respuesta HTTP " + response.status);
+  return response.json();
+}
+function resolveColabAlias(name){
+  const key = normalizeKey(name);
+  return COLAB_ALIASES[key] || name;
+}
+loadColabAliases();
+TICKETS.forEach(t=>{ t.colaborador = resolveColabAlias(t.colaborador); });
+
+// ---------------------------------------------------------------
+// CORRECCIONES MANUALES POR TICKET (reasignar analista / corregir área)
+// Se guardan por separado del dato crudo de BigQuery, y se reaplican
+// automáticamente cada vez que llegan datos nuevos (cada 12h), para que
+// una corrección manual no se pierda cuando BigQuery vuelve a sincronizar.
+// ---------------------------------------------------------------
+let CORRECCIONES = {}; // { ticketId: { area?: "...", colaborador?: "..." } }
+function loadCorrecciones(){
+  try{
+    const raw = localStorage.getItem("habi_correcciones");
+    CORRECCIONES = raw ? JSON.parse(raw) : {};
+  }catch(e){ CORRECCIONES = {}; }
+}
+function saveCorrecciones(){
+  try{ localStorage.setItem("habi_correcciones", JSON.stringify(CORRECCIONES)); }catch(e){}
+}
+async function guardarCorreccionesEnNube(){
+  const response = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: {"Content-Type": "text/plain;charset=utf-8"},
+    body: JSON.stringify({action: "saveCorrections", corrections: CORRECCIONES})
+  });
+  if(!response.ok) throw new Error("Respuesta HTTP " + response.status);
+  return response.json();
+}
+async function cargarCorreccionesDeNube(){
+  const response = await fetch(APPS_SCRIPT_URL + "?action=getCorrections&_=" + Date.now(), {cache: "no-store"});
+  if(!response.ok) throw new Error("Respuesta HTTP " + response.status);
+  return response.json();
+}
+function aplicarCorrecciones(){
+  TICKETS.forEach(t=>{
+    const c = CORRECCIONES[t.id];
+    if(!c) return;
+    if(c.area) t.area = c.area;
+    if(c.colaborador) t.colaborador = c.colaborador;
+  });
+}
+function registrarCorreccion(ticketId, campos){
+  CORRECCIONES[ticketId] = {...(CORRECCIONES[ticketId]||{}), ...campos};
+  saveCorrecciones();
+  guardarCorreccionesEnNube().catch(err=> console.warn("No se pudo sincronizar la corrección en la nube:", err));
+}
+loadCorrecciones();
+
+// Homologa variantes reales de la columna "empresa" a los nombres canónicos de marca
+function normalizeMarca(raw){
+  if(isBlank(raw)) return raw;
+  const v = normalizeKey(raw);
+  if(v.includes("brokers")) return String(raw).trim(); // NO se homologa: "Brokers Habi"/"Brokers Tuhabi" deben excluirse, no contar como marca directa
+  if(v.includes("tuhabi")) return "Tuhabi México";
+  if(v.includes("habi")) return "Habi Colombia";
+  return String(raw).trim();
+}
+const FIELD_ALIASES = {
+  id:          ["id","ticketid","interaccionid","numero","numeroticket","idticket"],
+  marca:       ["marca","brand","empresa"],
+  tipoCliente: ["tipodecliente","tipocliente","clienttype","customertype"],
+  motivo:      ["motivo","tipodecaso","casetype","reason"],
+  proceso:     ["proceso","process"],
+  categoria:   ["categoria","tipodeproblema","category","problema"],
+  subcategoria:["subcategoria","subcategory","detalle"],
+  colaborador: ["colaborador","analista","assignee","agente","agent","nombredelcolaborador","asignadoa","equiposolucion","responsable"],
+  area:        ["arearesponsable","area","group","grupo","departamento"],
+  nid:         ["nid","identificador","idpropiedad","propertyid","idnegocio"],
+  desc:        ["descripcion","desc","subject","asunto","summary","description"],
+  fecha:       ["fecha","date","fechacreacion","createdat"],
+  esDerechoPeticion: ["derechodepeticion","esderechodepeticion","pqr"],
+  estado:      ["estado","status"],
+};
+function resolveAlias(key){
+  const nk = normalizeKey(key);
+  for(const field in FIELD_ALIASES){
+    if(FIELD_ALIASES[field].includes(nk)) return field;
+  }
+  return null;
+}
+// Busca el primer valor no vacío recorriendo grupos de alias en orden de prioridad
+function getFirstVal(obj, aliasGroups){
+  for(const aliases of aliasGroups){
+    for(const key in obj){
+      if(aliases.includes(normalizeKey(key)) && !isBlank(obj[key])){
+        return String(obj[key]).trim();
+      }
+    }
+  }
+  return null;
+}
+function rawObjToTicket(obj, idx){
+  const t = {id:null, marca:"—", tipoCliente:"No identificado", motivo:"Queja", proceso:"—", categoria:"—", subcategoria:"—", colaborador:"Sin asignar", area:"—", nid:"—", desc:"", fecha:null, esDerechoPeticion:false, estado:null};
+  for(const key in obj){
+    const field = resolveAlias(key);
+    if(field && !isBlank(obj[key])){
+      t[field] = String(obj[key]).trim();
+    }
+  }
+  // Reglas de prioridad / valores por defecto específicas de BigQuery (interaccion_id, asignado_a, etc.)
+  t.id = getFirstVal(obj, [["id","ticket","ticketid","interaccionid"]]) || ("IMP-" + (idx+1) + "-" + Math.floor(Math.random()*9000+1000));
+  t.marca = normalizeMarca(getFirstVal(obj, [["marca","brand","empresa"]]) || t.marca);
+  t.nid = getFirstVal(obj, [["nid","identificador","idpropiedad","propertyid","idnegocio"]]) || getByLetter(obj,"D") || "N/A";
+  t.area = getFirstVal(obj, [["arearesponsable","area","group","grupo","departamento"], ["infra"]]) || t.area;
+  const colabRaw = getFirstVal(obj, [["colaborador","nombrecolaborador","nombredelcolaborador"]]) || getByLetter(obj,"I");
+  t.colaborador = colabRaw ? resolveColabAlias(titleCaseName(colabRaw)) : "Sin asignar";
+  t.categoria = getFirstVal(obj, [["categoria","tipodeproblema","category","problema"]]) || "Sin categoría";
+  t.subcategoria = getFirstVal(obj, [["subcategoria","subcategory","detalle"]]) || "Sin subcategoría";
+  t.motivo = getFirstVal(obj, [["motivo","tipodecaso","casetype","reason"]]) || t.motivo;
+  t.resumenIA = getFirstVal(obj, [["segundoresumenia"], ["primerresumenia"], ["resumen"], ["asunto","subject"]]) || getByLetter(obj,"M") || getByLetter(obj,"L") || "SIN INFORMACIÓN";
+  t.estado = getFirstVal(obj, [["estado","status"]]);
+
+  if(typeof t.esDerechoPeticion === "string") t.esDerechoPeticion = ["true","si","sí","1","yes"].includes(t.esDerechoPeticion.toLowerCase());
+  if(t.fecha){
+    const parsed = new Date(t.fecha);
+    t.dias = isNaN(parsed) ? 0 : Math.max(0, Math.round((Date.now() - parsed.getTime()) / 86400000));
+  } else {
+    t.dias = 0;
+    t.fecha = new Date().toISOString().slice(0,10);
+  }
+  return t;
+}
+function parseCSVText(text){
+  const rows = [];
+  let field = "", row = [], inQuotes = false;
+  const pushField = ()=>{ row.push(field); field=""; };
+  const pushRow = ()=>{ rows.push(row); row=[]; };
+  for(let i=0;i<text.length;i++){
+    const c = text[i], next = text[i+1];
+    if(inQuotes){
+      if(c === '"' && next === '"'){ field+='"'; i++; }
+      else if(c === '"'){ inQuotes=false; }
+      else field += c;
+    }else{
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ pushField(); }
+      else if(c === '\r'){ /* skip */ }
+      else if(c === '\n'){ pushField(); pushRow(); }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ pushField(); pushRow(); }
+  const filtered = rows.filter(r => r.some(c=>c.trim() !== ""));
+  if(filtered.length < 2) return [];
+  const headers = filtered[0];
+  return filtered.slice(1).map(r=>{
+    const obj = {};
+    headers.forEach((h,i)=> obj[h] = r[i] !== undefined ? r[i] : "");
+    return obj;
+  });
+}
+function parseImportInput(text){
+  const trimmed = text.replace(/^\uFEFF/, "").trim();
+  if(!trimmed) return [];
+  if(trimmed.startsWith("[") || trimmed.startsWith("{")){
+    try{
+      const parsed = JSON.parse(trimmed);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      return arr.map((o,i)=> rawObjToTicket(o,i));
+    }catch(e){ /* fall through to CSV attempt */ }
+  }
+  const rawRows = parseCSVText(trimmed);
+  return rawRows.map((o,i)=> rawObjToTicket(o,i));
+}
+async function runImport(text){
+  const mode = document.getElementById("f_importMode").value;
+  const parsed = parseImportInput(text);
+  if(parsed.length === 0){
+    alert("No se pudo interpretar el archivo. Verifica que sea un CSV con encabezados o un JSON válido.");
+    return;
+  }
+  TICKETS = mode === "replace" ? parsed : TICKETS.concat(parsed);
+  aplicarCorrecciones();
+  guardarTicketsEnCache();
+  document.getElementById("importBackdrop").classList.remove("show");
+  document.getElementById("f_importText").value = "";
+  document.getElementById("f_importFile").value = "";
+  renderAll();
+  showToast(`${parsed.length} ticket(s) importado(s). Subiendo a la nube para compartir…`);
+  try{
+    const soloAutorizados = TICKETS.filter(isAuthorized);
+    await guardarTicketsEnNube(soloAutorizados);
+    showToast(`Compartido: ${soloAutorizados.length} ticket(s) ya visibles para todos los que abran el link.`);
+  }catch(err){
+    console.error(err);
+    alert("Se importó localmente, pero no se pudo subir a la nube compartida. Solo tú verás estos datos por ahora.\n\nDetalle: " + err.message);
+  }
+}
+function downloadCsvTemplate(){
+  const headers = ["ID","Marca","Tipo de Cliente","Motivo","Proceso","Categoría","Subcategoría","Colaborador","Área Responsable","NID","Descripción","Fecha","Derecho de Petición"];
+  const example = ["CO-6001","Habi Colombia","Comprador","Reclamo","Compra","Financiamiento","Crédito hipotecario","Camila Rueda","Trámites Buyers","NID-CO-60011","Descripción del caso...","2026-08-15","Sí"];
+  const csv = headers.join(",") + "\n" + example.map(v=>`"${v.replace(/"/g,'""')}"`).join(",");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "plantilla_import_zendesk_habi.csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------
+// RENDER: KPIs GLOBALES
+// ---------------------------------------------------------------
+function renderKPIs(){
+  const filtered = applyFilters(TICKETS);
+  const analystGroups = groupBy(filtered.filter(t=> t.colaborador && t.colaborador !== "Sin asignar"), ["colaborador","marca","area"]);
+  const areaGroups = groupBy(filtered, ["marca","area"]);
+
+  const totalTickets = filtered.length;
+  const analistasEnRiesgo = [...analystGroups.values()].filter(t=> analystZone(t.length) === "red").length;
+  const pqrCo = filtered.filter(t=> t.marca === "Habi Colombia" && t.esDerechoPeticion).length;
+  const areasEnAlerta = [...areaGroups.values()].filter(t=> areaZone(t.length) !== "green").length;
+
+  document.getElementById("kpiTotal").textContent = totalTickets;
+  document.getElementById("kpiAnalistas").textContent = analistasEnRiesgo;
+  document.getElementById("kpiPqr").textContent = pqrCo;
+  document.getElementById("kpiAreas").textContent = areasEnAlerta;
+}
+
+// ---------------------------------------------------------------
+// EVENTS
+// ---------------------------------------------------------------
+function renderAll(){
+  renderKPIs();
+  renderAreas();
+  renderAnalysts();
+  renderPqr();
+}
+
+document.getElementById("filterMarca").addEventListener("change", e=>{filters.marca=e.target.value; renderAll();});
+document.getElementById("filterArea").addEventListener("change", e=>{filters.area=e.target.value; renderAll();});
+document.getElementById("filterCliente").addEventListener("change", e=>{filters.cliente=e.target.value; renderAll();});
+document.getElementById("filterProceso").addEventListener("change", e=>{filters.proceso=e.target.value; renderAll();});
+document.getElementById("filterPeriodo").addEventListener("change", e=>{
+  filters.periodo = e.target.value;
+  document.getElementById("customDateRange").style.display = (filters.periodo === "personalizada") ? "inline-flex" : "none";
+  renderAll();
+});
+document.getElementById("filterFechaInicio").addEventListener("change", e=>{ filters.fechaInicio = e.target.value; renderAll(); });
+document.getElementById("filterFechaFin").addEventListener("change", e=>{ filters.fechaFin = e.target.value; renderAll(); });
+document.getElementById("caseSearch").addEventListener("input", e=>{caseSearchText=e.target.value; renderPqr();});
+
+document.body.addEventListener("click", e=>{
+  const genBtn = e.target.closest("[data-genai]");
+  if(genBtn){ generarResumenIA(genBtn.dataset.genai); return; }
+
+  const tplBtn = e.target.closest("[data-tpl]");
+  if(tplBtn){
+    const key = decodeURIComponent(tplBtn.dataset.key);
+    let text, title;
+    if(tplBtn.dataset.tpl === "analyst"){
+      const [colaborador, marca, area] = key.split("|");
+      text = buildAnalystTemplate(colaborador, marca, area);
+      title = `Plantilla — Riesgo individual (${getGerente(marca, area)})`;
+    }else{
+      const [marca, area] = key.split("|");
+      text = buildAreaTemplate(marca, area);
+      title = `Plantilla — Revisión urgente de procesos (${getGerente(marca, area)})`;
+    }
+    document.getElementById("templateTitle").textContent = title;
+    document.getElementById("templateBody").textContent = text;
+    document.getElementById("templateBackdrop").classList.add("show");
+    return;
+  }
+
+  if(e.target.id === "btnCloseDrilldown"){
+    expandedAreaKey = null;
+    renderAreaDrilldown();
+    return;
+  }
+  if(e.target.id === "btnCloseCollabDrilldown"){
+    expandedCollabKey = null;
+    renderCollabDrilldown();
+    return;
+  }
+
+  const fixAreaBtn = e.target.closest("[data-fixarea]");
+  if(fixAreaBtn){
+    const key = decodeURIComponent(fixAreaBtn.dataset.fixarea);
+    const [colaborador, marca, areaActual] = key.split("|");
+    const nuevaArea = document.getElementById("correctAreaSelect").value;
+    if(nuevaArea === areaActual){ showToast("Selecciona un área distinta a la actual."); return; }
+    let corregidos = 0;
+    TICKETS.forEach(t=>{
+      if(t.colaborador===colaborador && t.marca===marca && t.area===areaActual){
+        t.area = nuevaArea;
+        registrarCorreccion(t.id, {area: nuevaArea});
+        corregidos++;
+      }
+    });
+    guardarTicketsEnCache();
+    expandedCollabKey = `${colaborador}|${marca}|${nuevaArea}`;
+    renderAll();
+    showToast(`${corregidos} ticket(s) de ${colaborador} movidos a ${nuevaArea} (guardado permanente)`);
+    return;
+  }
+
+  const reassignBtn = e.target.closest("[data-reassign]");
+  if(reassignBtn){
+    const ticketId = reassignBtn.dataset.reassign;
+    const input = document.getElementById(`reassignInput-${ticketId}`);
+    const nuevoNombre = input.value.trim();
+    if(!nuevoNombre){ showToast("Escribe el nombre del analista correcto."); return; }
+    const ticket = TICKETS.find(t=> t.id === ticketId);
+    if(!ticket){ return; }
+    const nombreFinal = resolveColabAlias(titleCaseName(nuevoNombre));
+    const anterior = ticket.colaborador;
+    ticket.colaborador = nombreFinal;
+    registrarCorreccion(ticketId, {colaborador: nombreFinal});
+    guardarTicketsEnCache();
+    renderAll();
+    showToast(`Ticket ${ticketId} reasignado de "${anterior}" a "${nombreFinal}" (guardado permanente)`);
+    return;
+  }
+
+  const collabBtn = e.target.closest("[data-collabkey]");
+  if(collabBtn){
+    const key = decodeURIComponent(collabBtn.dataset.collabkey);
+    expandedCollabKey = (expandedCollabKey === key) ? null : key;
+    if(expandedCollabKey){
+      const [colaborador] = expandedCollabKey.split("|");
+      caseSearchText = colaborador;
+      document.getElementById("caseSearch").value = colaborador;
+    }
+    renderAnalysts();
+    renderPqr();
+    return;
+  }
+
+  const areaCard = e.target.closest("[data-areakey]");
+  if(areaCard){
+    const key = decodeURIComponent(areaCard.dataset.areakey);
+    expandedAreaKey = (expandedAreaKey === key) ? null : key;
+    renderAreas();
+    return;
+  }
+
+  const caseRow = e.target.closest("[data-caserow]");
+  if(caseRow){
+    const id = caseRow.dataset.caserow;
+    if(expandedCaseIds.has(id)) expandedCaseIds.delete(id); else expandedCaseIds.add(id);
+    renderPqr();
+    return;
+  }
+});
+
+document.getElementById("btnCloseTemplate").addEventListener("click", ()=> document.getElementById("templateBackdrop").classList.remove("show"));
+document.getElementById("templateBackdrop").addEventListener("click", e=>{ if(e.target.id==="templateBackdrop") e.target.classList.remove("show"); });
+
+document.getElementById("btnCopyTemplate").addEventListener("click", ()=>{
+  const text = document.getElementById("templateBody").textContent;
+  navigator.clipboard.writeText(text).then(()=>showToast());
+});
+
+function showToast(msg){
+  const toast = document.getElementById("toast");
+  toast.textContent = msg || "Copiado al portapapeles";
+  toast.classList.add("show");
+  setTimeout(()=> toast.classList.remove("show"), 2400);
+}
+
+// ---------------------------------------------------------------
+// NOTIFICACIONES POR GOOGLE CHAT (vía Apps Script como intermediario)
+// ---------------------------------------------------------------
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMFgpkJtXR4JQwJe211DyTrMir3UsUO6IDcSGqCGqkP2MkXe4BHzqoLpD7soeMBWUy/exec";
+
+async function guardarTicketsEnNube(tickets){
+  const response = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: {"Content-Type": "text/plain;charset=utf-8"},
+    body: JSON.stringify({action: "saveTickets", tickets})
+  });
+  if(!response.ok) throw new Error("Respuesta HTTP " + response.status);
+  return response.json();
+}
+
+async function cargarTicketsDeNube(){
+  const response = await fetch(APPS_SCRIPT_URL + "?action=getTickets&_=" + Date.now(), {cache: "no-store"});
+  if(!response.ok) throw new Error("Respuesta HTTP " + response.status);
+  return response.json();
+}
+
+async function enviarNotificacionChat(texto){
+  // Content-Type "text/plain" evita el preflight CORS; Apps Script igual lo parsea como JSON.
+  const response = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: {"Content-Type": "text/plain;charset=utf-8"},
+    body: JSON.stringify({text: texto})
+  });
+  if(!response.ok) throw new Error("Respuesta HTTP " + response.status);
+  return response;
+}
+
+document.getElementById("kpiAnalistasCard").addEventListener("click", ()=>{
+  verSoloEnRiesgo = !verSoloEnRiesgo;
+  document.getElementById("kpiAnalistasCard").style.outline = verSoloEnRiesgo ? "2px solid var(--amber)" : "none";
+  renderAnalysts();
+  document.getElementById("rankingTitle").scrollIntoView({behavior:"smooth", block:"center"});
+});
+
+document.getElementById("btnTestChat").addEventListener("click", async ()=>{
+  const btn = document.getElementById("btnTestChat");
+  const original = btn.textContent;
+  btn.textContent = "Enviando…";
+  btn.disabled = true;
+  try{
+    await enviarNotificacionChat("🔔 Prueba del Tablero Operativo de Riesgo — si ves este mensaje, la conexión con Google Chat funciona correctamente.");
+    showToast("Mensaje enviado a Google Chat ✅");
+  }catch(err){
+    console.error(err);
+    alert("No se pudo enviar el mensaje de prueba. Revisa que el script de Apps Script esté bien implementado como 'Aplicación web' con acceso 'Cualquier usuario'.\n\nDetalle: " + err.message);
+  }finally{
+    btn.textContent = original;
+    btn.disabled = false;
+  }
+});
+
+// Import modal
+// ---------------------------------------------------------------
+// UI: Diccionario de homologación
+// ---------------------------------------------------------------
+function renderDictRows(){
+  const box = document.getElementById("dictRows");
+  box.innerHTML = "";
+  const entries = Object.entries(COLAB_ALIASES);
+  if(entries.length === 0){
+    box.insertAdjacentHTML("beforeend", `<div class="empty-note">Sin homologaciones todavía. Agrega una fila.</div>`);
+  }
+  entries.forEach(([aliasKey, realName], i)=>{
+    box.insertAdjacentHTML("beforeend", `
+      <div style="display:flex;gap:8px;align-items:center;" data-dictrow="${i}">
+        <input type="text" class="dict-alias" value="${aliasKey}" placeholder="Como viene en Zendesk" style="flex:1;">
+        <span style="color:var(--text-dim);">→</span>
+        <input type="text" class="dict-real" value="${realName}" placeholder="Nombre real" style="flex:1;">
+        <button class="small ghost" data-deldictrow="${i}">✕</button>
+      </div>
+    `);
+  });
+}
+document.getElementById("btnMoreOptions").addEventListener("click", (e)=>{
+  e.stopPropagation();
+  const menu = document.getElementById("moreOptionsMenu");
+  menu.style.display = menu.style.display === "none" ? "flex" : "none";
+});
+document.addEventListener("click", (e)=>{
+  const menu = document.getElementById("moreOptionsMenu");
+  if(menu.style.display !== "none" && !menu.contains(e.target) && e.target.id !== "btnMoreOptions"){
+    menu.style.display = "none";
+  }
+});
+
+document.getElementById("btnDiccionario").addEventListener("click", ()=>{
+  renderDictRows();
+  document.getElementById("dictBackdrop").classList.add("show");
+});
+document.getElementById("btnCloseDict").addEventListener("click", ()=> document.getElementById("dictBackdrop").classList.remove("show"));
+document.getElementById("dictBackdrop").addEventListener("click", e=>{ if(e.target.id==="dictBackdrop") e.target.classList.remove("show"); });
+document.getElementById("btnAddDictRow").addEventListener("click", ()=>{
+  const box = document.getElementById("dictRows");
+  if(box.querySelector(".empty-note")) box.innerHTML = "";
+  box.insertAdjacentHTML("beforeend", `
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="text" class="dict-alias" placeholder="Como viene en Zendesk" style="flex:1;">
+      <span style="color:var(--text-dim);">→</span>
+      <input type="text" class="dict-real" placeholder="Nombre real" style="flex:1;">
+      <button class="small ghost" data-deldictrow="new">✕</button>
+    </div>
+  `);
+});
+document.getElementById("dictRows").addEventListener("click", e=>{
+  const btn = e.target.closest("[data-deldictrow]");
+  if(btn) btn.closest("div[style]").remove();
+});
+document.getElementById("btnSaveDict").addEventListener("click", async ()=>{
+  const newMap = {};
+  document.querySelectorAll("#dictRows > div").forEach(row=>{
+    const alias = row.querySelector(".dict-alias")?.value.trim();
+    const real = row.querySelector(".dict-real")?.value.trim();
+    if(alias && real && alias.length <= 60 && real.length <= 60) newMap[normalizeKey(alias)] = real;
+  });
+  COLAB_ALIASES = newMap;
+  saveColabAliases();
+  // Aplica el diccionario de inmediato a los tickets ya cargados, sin esperar a un nuevo import
+  let cambiados = 0;
+  TICKETS.forEach(t=>{
+    const nuevo = resolveColabAlias(t.colaborador);
+    if(nuevo !== t.colaborador){ t.colaborador = nuevo; cambiados++; }
+  });
+  guardarTicketsEnCache();
+  renderAll();
+  document.getElementById("dictBackdrop").classList.remove("show");
+  showToast(cambiados > 0 ? `Diccionario guardado. Se actualizaron ${cambiados} ticket(s) al instante.` : "Diccionario guardado.");
+  try{
+    await guardarDiccionarioEnNube();
+    showToast("Diccionario sincronizado en la nube ✅");
+  }catch(err){
+    console.error(err);
+    showToast("Guardado local OK, pero no se pudo sincronizar en la nube.");
+  }
+});
+document.getElementById("btnExportDict").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(COLAB_ALIASES, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "diccionario_colaboradores_habi.json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+document.getElementById("btnImportDict").addEventListener("click", ()=>{
+  const input = document.createElement("input");
+  input.type = "file"; input.accept = ".json,application/json";
+  input.onchange = ()=>{
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const parsed = JSON.parse(reader.result);
+        COLAB_ALIASES = {...COLAB_ALIASES, ...parsed};
+        renderDictRows();
+        showToast("Diccionario importado. Recuerda guardar.");
+      }catch(e){ alert("El archivo JSON no es válido."); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+});
+
+document.getElementById("btnImport").addEventListener("click", ()=> document.getElementById("importBackdrop").classList.add("show"));
+document.getElementById("btnClearCache").addEventListener("click", ()=>{
+  if(!confirm("¿Borrar los tickets guardados en este navegador y volver a los datos demo?")) return;
+  try{ localStorage.removeItem("habi_tickets_cache"); }catch(e){}
+  location.reload();
+});
+document.getElementById("btnCancelImport").addEventListener("click", ()=> document.getElementById("importBackdrop").classList.remove("show"));
+document.getElementById("importBackdrop").addEventListener("click", e=>{ if(e.target.id==="importBackdrop") e.target.classList.remove("show"); });
+document.getElementById("btnDownloadTemplate").addEventListener("click", downloadCsvTemplate);
+document.getElementById("f_importFile").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=> { document.getElementById("f_importText").value = reader.result; };
+  reader.readAsText(file);
+});
+document.getElementById("btnDoImport").addEventListener("click", ()=>{
+  const text = document.getElementById("f_importText").value;
+  if(!text.trim()){ alert("Sube un archivo o pega el contenido a importar."); return; }
+  runImport(text);
+});
+
+// Add ticket modal
+document.getElementById("btnAddTicket").addEventListener("click", ()=> document.getElementById("modalBackdrop").classList.add("show"));
+document.getElementById("btnCancel").addEventListener("click", ()=> document.getElementById("modalBackdrop").classList.remove("show"));
+document.getElementById("modalBackdrop").addEventListener("click", e=>{ if(e.target.id==="modalBackdrop") e.target.classList.remove("show"); });
+
+document.getElementById("btnSave").addEventListener("click", ()=>{
+  const id = document.getElementById("f_id").value.trim() || ("T-" + Math.floor(Math.random()*90000+10000));
+  const colaborador = document.getElementById("f_colaborador").value.trim();
+  if(!colaborador){ alert("Ingresa el nombre del colaborador."); return; }
+  const newTicket = {
+    id,
+    marca: document.getElementById("f_marca").value,
+    tipoCliente: document.getElementById("f_tipocliente").value,
+    motivo: document.getElementById("f_motivo").value,
+    proceso: document.getElementById("f_proceso").value,
+    area: document.getElementById("f_area").value,
+    colaborador,
+    nid: document.getElementById("f_nid").value.trim() || "—",
+    categoria: document.getElementById("f_categoria").value.trim() || "—",
+    subcategoria: document.getElementById("f_subcategoria").value.trim() || "—",
+    desc: document.getElementById("f_desc").value.trim() || "Sin descripción.",
+    dias: 0,
+    fecha: new Date().toISOString().slice(0,10),
+    esDerechoPeticion: document.getElementById("f_derechopeticion").value === "true",
+  };
+  TICKETS.push(newTicket);
+  guardarTicketsEnCache();
+  document.getElementById("modalBackdrop").classList.remove("show");
+  ["f_colaborador","f_id","f_nid","f_categoria","f_subcategoria","f_desc"].forEach(id=> document.getElementById(id).value="");
+  renderAll();
+});
+
+renderAll();
+if(usandoDatosGuardados){
+  showToast(`Cargando ${TICKETS.length} tickets guardados de tu última importación`);
+}
+
+// Al abrir la página, intenta traer el diccionario, las correcciones y los datos compartidos
+(async ()=>{
+  try{
+    const diccionarioNube = await cargarDiccionarioDeNube();
+    if(diccionarioNube && typeof diccionarioNube === "object" && Object.keys(diccionarioNube).length > 0){
+      COLAB_ALIASES = diccionarioNube;
+      saveColabAliases();
+    }
+  }catch(err){
+    console.warn("No se pudo cargar el diccionario compartido, se queda con el local:", err);
+  }
+  try{
+    const correccionesNube = await cargarCorreccionesDeNube();
+    if(correccionesNube && typeof correccionesNube === "object" && Object.keys(correccionesNube).length > 0){
+      CORRECCIONES = correccionesNube;
+      saveCorrecciones();
+      aplicarCorrecciones();
+      renderAll();
+    }
+  }catch(err){
+    console.warn("No se pudieron cargar las correcciones compartidas, se quedan las locales:", err);
+  }
+  try{
+    const compartidos = await cargarTicketsDeNube();
+    if(Array.isArray(compartidos) && compartidos.length > 0){
+      // Si vienen "en crudo" (ej. directo de BigQuery vía Apps Script, con columnas como
+      // interaccion_id/empresa) se procesan igual que un CSV importado. Si ya vienen
+      // procesados (subida manual previa desde el navegador, con campo "colaborador"), se usan tal cual.
+      const esCrudo = compartidos[0] && typeof compartidos[0].colaborador === "undefined";
+      TICKETS = esCrudo ? compartidos.map((o,i)=> rawObjToTicket(o,i)) : compartidos;
+      // Siempre se reaplica el diccionario más reciente, sin importar si los tickets
+      // ya venían "procesados" de una importación manual anterior.
+      TICKETS.forEach(t=>{ t.colaborador = resolveColabAlias(t.colaborador); });
+      aplicarCorrecciones();
+      guardarTicketsEnCache();
+      renderAll();
+      showToast(`Datos compartidos cargados: ${TICKETS.length} ticket(s)`);
+    }
+  }catch(err){
+    console.warn("No se pudo cargar el CSV compartido, se queda con la última versión local:", err);
+  }
+})();
+</script>
+</body>
+</html>
