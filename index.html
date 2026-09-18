@@ -711,6 +711,7 @@ function renderAreaDrilldown(){
       <span class="tag nid">${t.nid}</span>
       <span class="tag">${t.id}</span>
       <span class="tag">Colaborador: ${t.colaborador}</span>
+      <span class="tag">📅 ${t.fecha || "Sin fecha"}</span>
       ${dpTag}
     </div>`;
   }).join("");
@@ -807,6 +808,7 @@ function renderCollabDrilldown(){
         <span class="tag nid">${t.nid}</span>
         <span class="tag">${t.id}</span>
         <span class="tag">${t.subcategoria}</span>
+        <span class="tag">📅 ${t.fecha || "Sin fecha"}</span>
         ${dpTag}
       </div>
       <div class="ai-resumen show" style="margin-top:6px;">
@@ -871,6 +873,7 @@ function renderPqr(){
               <span class="tag violet">${t.categoria}</span>
               <span class="tag">Colaborador: ${t.colaborador}</span>
               <span class="tag">${t.area}</span>
+              <span class="tag">📅 ${t.fecha || "Sin fecha"}</span>
               ${dpTag}
             </div>
           </div>
