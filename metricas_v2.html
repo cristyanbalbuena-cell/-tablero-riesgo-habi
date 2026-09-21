@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Métricas — Tablero de Riesgo Habi</title>
+<style>
+  :root {
+    --violet: #6A06FA;
+    --violet-dark: #3D0399;
+    --green: #00C29C;
+    --aqua: #66F7DB;
+    --text-dark: #1A1033;
+    --gray-muted: #6B6B7A;
+    --bg-light: #FAFAFF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Calibri, Arial, sans-serif;
+    background: var(--bg-light);
+    color: var(--text-dark);
+  }
+
+  header {
+    background: var(--violet);
+    color: white;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  header .subtitle {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 4px;
+  }
+
+  header a {
+    color: var(--aqua);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  header a:hover { text-decoration: underline; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .estado {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray-muted);
+    font-size: 15px;
+  }
+
+  .estado.error { color: #C0392B; }
+
+  .card {
+    background: white;
+    border: 1px solid #E5E0F5;
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 3px 10px rgba(61, 3, 153, 0.06);
+  }
+
+  .card h2 {
+    margin: 0 0 4px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+
+  .card .card-sub {
+    font-size: 13px;
+    color: var(--gray-muted);
+    margin-bottom: 16px;
+  }
+
+  .filtros {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .filtros button {
+    border: 1px solid #E5E0F5;
+    background: white;
+    color: var(--text-dark);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filtros button.activo {
+    background: var(--violet);
+    color: white;
+    border-color: var(--violet);
+  }
+
+  .chart-wrap {
+    width: 100%;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+
+  .chart-legend .item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chart-legend .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .sin-datos {
+    text-align: center;
+    color: var(--gray-muted);
+    font-size: 13px;
+    padding: 40px 0;
+  }
+
+  .top-analistas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .top-analistas .grupo h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    color: var(--violet-dark);
+  }
+
+  .top-analistas ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .top-analistas li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid #F0EDFB;
+    color: var(--text-dark);
+  }
+
+  .top-analistas li .cantidad {
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .fecha-corte {
+    font-size: 12px;
+    color: var(--gray-muted);
+    text-align: right;
+    margin-top: 24px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📊 Métricas — Tablero de Riesgo</h1>
+    <div class="subtitle">Habi Colombia &amp; Tuhabi México</div>
+  </div>
+  <a href="./index.html">← Volver al tablero</a>
+</header>
+
+<main>
+  <div id="estado" class="estado">Cargando histórico…</div>
+  <div id="contenido" style="display:none;">
+
+    <div class="card">
+      <h2>Tendencia diaria por área</h2>
+      <div class="card-sub">Tickets reportados en cada alerta diaria (día vencido)</div>
+      <div class="filtros" id="filtrosDiario"></div>
+      <div class="chart-wrap" id="chartDiario"></div>
+    </div>
+
+    <div class="card">
+      <h2>Tendencia semanal por área</h2>
+      <div class="card-sub">Total reportado en cada alerta semanal comparativa (lunes)</div>
+      <div class="chart-wrap" id="chartSemanal"></div>
+    </div>
+
+    <div class="card">
+      <h2>Top colaboradores — corte más reciente</h2>
+      <div class="card-sub" id="fechaTopAnalistas"></div>
+      <div class="top-analistas" id="topAnalistas"></div>
+    </div>
+
+    <div class="fecha-corte" id="fechaActualizacion"></div>
+  </div>
+</main>
+
+<script>
+// ============================================================
+// Sin librerías externas (Chart.js, CDN, etc.) — todo se dibuja
+// con SVG generado a mano, para que funcione aunque la red del
+// trabajo bloquee dominios externos.
+// ============================================================
+
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbwMFgpkJtXR4JQwJe211DyTrMir3UsUO6IDcSGqCGqkP2MkXe4BHzqoLpD7soeMBWUy/exec';
+
+const COLORES_AREA = {
+  'Trámites Sellers Colombia': '#6A06FA',
+  'Trámites Buyers e Inmobiliaria Colombia': '#00C29C',
+  'Trámites México (todo)': '#1A1033',
+  'México - Sellers': '#8A3FFC',
+  'México - Buyers': '#00A884',
+  'México - Inmobiliaria': '#B8860B',
+};
+
+const AREAS_PRINCIPALES = [
+  'Trámites Sellers Colombia',
+  'Trámites Buyers e Inmobiliaria Colombia',
+  'Trámites México (todo)',
+];
+
+function colorDeArea(area) {
+  return COLORES_AREA[area] || '#999999';
+}
+
+async function cargarDatos() {
+  try {
+    const resp = await fetch(BASE_URL + '?action=getMetricas', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const datos = await resp.json();
+
+    document.getElementById('estado').style.display = 'none';
+    document.getElementById('contenido').style.display = 'block';
+
+    construirFiltros(datos);
+    dibujarLineChart('chartDiario', datos, 'diario', AREAS_PRINCIPALES);
+    dibujarBarChart('chartSemanal', datos, 'semanal', AREAS_PRINCIPALES);
+    dibujarTopAnalistas(datos);
+
+    document.getElementById('fechaActualizacion').textContent =
+      'Datos actualizados al cargar esta página: ' + new Date().toLocaleString('es-MX');
+  } catch (err) {
+    console.error(err);
+    const estado = document.getElementById('estado');
+    estado.textContent = 'No se pudo cargar el histórico. Revisa que el endpoint "getMetricas" esté publicado en Apps Script (Implementar → Nueva versión). Detalle: ' + err.message;
+    estado.classList.add('error');
+  }
+}
+
+function agruparParaSerie(datos, tipo, areasFiltro) {
+  const filtradas = datos.filter(function (d) {
+    return d.tipo === tipo && areasFiltro.indexOf(d.area) !== -1;
+  });
+
+  const mapa = {};
+  filtradas.forEach(function (d) {
+    mapa[d.fecha_registro + '|' + d.area] = d;
+  });
+
+  const fechas = Array.from(new Set(Object.values(mapa).map(function (d) { return d.fecha_registro; }))).sort();
+
+  const series = areasFiltro.map(function (area) {
+    return {
+      label: area,
+      color: colorDeArea(area),
+      data: fechas.map(function (f) {
+        const fila = mapa[f + '|' + area];
+        return fila ? Number(fila.total) : null;
+      }),
+    };
+  }).filter(function (s) { return s.data.some(function (v) { return v !== null; }); });
+
+  return { fechas, series };
+}
+
+// ------------------------------------------------------------
+// Dibuja una gráfica de línea con SVG puro, sin dependencias
+// ------------------------------------------------------------
+function crearSvgLineChart(fechas, series) {
+  const width = 900;
+  const height = 320;
+  const margin = { top: 20, right: 20, bottom: 34, left: 42 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const todosValores = series.flatMap(function (s) {
+    return s.data.filter(function (v) { return v !== null && v !== undefined; });
+  });
+  const maxVal = Math.max(1, ...todosValores);
+  const n = fechas.length;
+  const xStep = n > 1 ? innerW / (n - 1) : 0;
+
+  function xPos(i) { return margin.left + i * xStep; }
+  function yPos(v) { return margin.top + innerH - (v / maxVal) * innerH; }
+
+  let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" ' +
+    'xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">';
+
+  const divisiones = 4;
+  for (let g = 0; g <= divisiones; g++) {
+    const gv = (maxVal / divisiones) * g;
+    const gy = yPos(gv);
+    svg += '<line x1="' + margin.left + '" y1="' + gy + '" x2="' + (margin.left + innerW) + '" y2="' + gy +
+      '" stroke="#E5E0F5" stroke-width="1" />';
+    svg += '<text x="' + (margin.left - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#6B6B7A">' +
+      Math.round(gv) + '</text>';
+  }
+
+  const maxEtiquetas = 7;
+  const pasoEtiqueta = Math.max(1, Math.ceil(n / maxEtiquetas));
+  for (let i = 0; i < n; i += pasoEtiqueta) {
+    svg += '<text x="' + xPos(i) + '" y="' + (height - margin.bottom + 16) +
+      '" text-anchor="middle" font-size="10" fill="#6B6B7A">' + fechas[i].slice(5) + '</text>';
+  }
+
+  series.forEach(function (s) {
+    const puntos = [];
+    let pathD = '';
+    s.data.forEach(function (v, i) {
+      if (v === null || v === undefined) return;
+      const px = xPos(i), py = yPos(v);
+      pathD += (puntos.length === 0 ? 'M' : 'L') + px + ' ' + py + ' ';
+      puntos.push({ px: px, py: py, v: v, fecha: fechas[i] });
+    });
+    if (pathD) {
+      svg += '<path d="' + pathD.trim() + '" fill="none" stroke="' + s.color + '" stroke-width="2.5" />';
+    }
+    puntos.forEach(function (p) {
+      svg += '<circle cx="' + p.px + '" cy="' + p.py + '" r="3.5" fill="' + s.color + '">' +
+        '<title>' + p.fecha + ' — ' + s.label + ': ' + p.v + '</title></circle>';
+    });
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+// ------------------------------------------------------------
+// Dibuja una gráfica de barras agrupadas con SVG puro
+// ------------------------------------------------------------
+function crearSvgBarChart(fechas, series) {
+  const width = 900;
+  const height = 320;
+  const margin = { top: 20, right: 20, bottom: 34, left: 42 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const todosValores = series.flatMap(function (s) {
+    return s.data.filter(function (v) { return v !== null && v !== undefined; });
+  });
+  const maxVal = Math.max(1, ...todosValores);
+  const n = fechas.length;
+  const numSeries = series.length || 1;
+
+  const grupoAncho = innerW / Math.max(n, 1);
+  const barraAncho = Math.max(2, (grupoAncho * 0.7) / numSeries);
+  const espacioEntreGrupos = grupoAncho * 0.15;
+
+  function yPos(v) { return margin.top + innerH - (v / maxVal) * innerH; }
+
+  let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" ' +
+    'xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">';
+
+  const divisiones = 4;
+  for (let g = 0; g <= divisiones; g++) {
+    const gv = (maxVal / divisiones) * g;
+    const gy = yPos(gv);
+    svg += '<line x1="' + margin.left + '" y1="' + gy + '" x2="' + (margin.left + innerW) + '" y2="' + gy +
+      '" stroke="#E5E0F5" stroke-width="1" />';
+    svg += '<text x="' + (margin.left - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#6B6B7A">' +
+      Math.round(gv) + '</text>';
+  }
+
+  for (let i = 0; i < n; i++) {
+    const grupoX = margin.left + i * grupoAncho + espacioEntreGrupos / 2;
+    series.forEach(function (s, si) {
+      const v = s.data[i];
+      if (v === null || v === undefined) return;
+      const bx = grupoX + si * barraAncho;
+      const by = yPos(v);
+      const bh = margin.top + innerH - by;
+      svg += '<rect x="' + bx + '" y="' + by + '" width="' + barraAncho + '" height="' + bh +
+        '" fill="' + s.color + '" rx="2">' +
+        '<title>' + fechas[i] + ' — ' + s.label + ': ' + v + '</title></rect>';
+    });
+    const centroGrupo = margin.left + i * grupoAncho + grupoAncho / 2;
+    svg += '<text x="' + centroGrupo + '" y="' + (height - margin.bottom + 16) +
+      '" text-anchor="middle" font-size="10" fill="#6B6B7A">' + fechas[i].slice(5) + '</text>';
+  }
+
+  svg += '</svg>';
+  return svg;
+}
+
+function construirLeyenda(series) {
+  let html = '<div class="chart-legend">';
+  series.forEach(function (s) {
+    html += '<div class="item"><span class="dot" style="background:' + s.color + ';"></span>' + s.label + '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function dibujarLineChart(contenedorId, datos, tipo, areasFiltro) {
+  const contenedor = document.getElementById(contenedorId);
+  const { fechas, series } = agruparParaSerie(datos, tipo, areasFiltro);
+
+  if (fechas.length === 0 || series.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay suficientes datos para graficar. Se irá llenando con cada alerta real que se envíe.</div>';
+    return;
+  }
+
+  contenedor.innerHTML = crearSvgLineChart(fechas, series) + construirLeyenda(series);
+}
+
+function dibujarBarChart(contenedorId, datos, tipo, areasFiltro) {
+  const contenedor = document.getElementById(contenedorId);
+  const { fechas, series } = agruparParaSerie(datos, tipo, areasFiltro);
+
+  if (fechas.length === 0 || series.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay suficientes datos para graficar. Se irá llenando cada lunes.</div>';
+    return;
+  }
+
+  contenedor.innerHTML = crearSvgBarChart(fechas, series) + construirLeyenda(series);
+}
+
+function construirFiltros(datos) {
+  const contenedor = document.getElementById('filtrosDiario');
+  contenedor.innerHTML = '';
+
+  const opciones = [
+    { label: 'Vista general', areas: AREAS_PRINCIPALES },
+    { label: 'Solo Colombia', areas: ['Trámites Sellers Colombia', 'Trámites Buyers e Inmobiliaria Colombia'] },
+    { label: 'Solo México (por sub-área)', areas: ['México - Sellers', 'México - Buyers', 'México - Inmobiliaria'] },
+  ];
+
+  opciones.forEach(function (op, i) {
+    const btn = document.createElement('button');
+    btn.textContent = op.label;
+    if (i === 0) btn.classList.add('activo');
+    btn.addEventListener('click', function () {
+      Array.from(contenedor.children).forEach(function (b) { b.classList.remove('activo'); });
+      btn.classList.add('activo');
+      dibujarLineChart('chartDiario', datos, 'diario', op.areas);
+    });
+    contenedor.appendChild(btn);
+  });
+}
+
+function dibujarTopAnalistas(datos) {
+  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  if (diarios.length === 0) {
+    document.getElementById('topAnalistas').textContent = 'Aún no hay datos suficientes.';
+    return;
+  }
+
+  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
+  document.getElementById('fechaTopAnalistas').textContent = 'Corte del ' + fechaMasReciente;
+
+  const contenedor = document.getElementById('topAnalistas');
+  contenedor.innerHTML = '';
+
+  AREAS_PRINCIPALES.forEach(function (area) {
+    const fila = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === area; });
+    const div = document.createElement('div');
+    div.className = 'grupo';
+
+    const h3 = document.createElement('h3');
+    h3.textContent = area;
+    div.appendChild(h3);
+
+    const ul = document.createElement('ul');
+    if (fila && fila.analistas && Object.keys(fila.analistas).length > 0) {
+      const entradas = Object.entries(fila.analistas).sort(function (a, b) { return b[1] - a[1]; });
+      entradas.forEach(function (e) {
+        const li = document.createElement('li');
+        li.innerHTML = '<span>' + e[0] + '</span><span class="cantidad">' + e[1] + '</span>';
+        ul.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.textContent = 'Sin datos para este corte.';
+      ul.appendChild(li);
+    }
+    div.appendChild(ul);
+    contenedor.appendChild(div);
+  });
+}
+
+cargarDatos();
+</script>
+
+</body>
+</html>
