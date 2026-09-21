@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Métricas — Tablero de Riesgo Habi</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   :root {
     --violet: #6A06FA;
@@ -119,8 +118,35 @@
   }
 
   .chart-wrap {
-    position: relative;
-    height: 340px;
+    width: 100%;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+
+  .chart-legend .item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chart-legend .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .sin-datos {
+    text-align: center;
+    color: var(--gray-muted);
+    font-size: 13px;
+    padding: 40px 0;
   }
 
   .top-analistas {
@@ -182,13 +208,13 @@
       <h2>Tendencia diaria por área</h2>
       <div class="card-sub">Tickets reportados en cada alerta diaria (día vencido)</div>
       <div class="filtros" id="filtrosDiario"></div>
-      <div class="chart-wrap"><canvas id="chartDiario"></canvas></div>
+      <div class="chart-wrap" id="chartDiario"></div>
     </div>
 
     <div class="card">
       <h2>Tendencia semanal por área</h2>
       <div class="card-sub">Total reportado en cada alerta semanal comparativa (lunes)</div>
-      <div class="chart-wrap"><canvas id="chartSemanal"></canvas></div>
+      <div class="chart-wrap" id="chartSemanal"></div>
     </div>
 
     <div class="card">
@@ -202,6 +228,12 @@
 </main>
 
 <script>
+// ============================================================
+// Sin librerías externas (Chart.js, CDN, etc.) — todo se dibuja
+// con SVG generado a mano, para que funcione aunque la red del
+// trabajo bloquee dominios externos.
+// ============================================================
+
 const BASE_URL = 'https://script.google.com/macros/s/AKfycbwMFgpkJtXR4JQwJe211DyTrMir3UsUO6IDcSGqCGqkP2MkXe4BHzqoLpD7soeMBWUy/exec';
 
 const COLORES_AREA = {
@@ -209,7 +241,7 @@ const COLORES_AREA = {
   'Trámites Buyers e Inmobiliaria Colombia': '#00C29C',
   'Trámites México (todo)': '#1A1033',
   'México - Sellers': '#8A3FFC',
-  'México - Buyers': '#33D6B8',
+  'México - Buyers': '#00A884',
   'México - Inmobiliaria': '#B8860B',
 };
 
@@ -233,8 +265,8 @@ async function cargarDatos() {
     document.getElementById('contenido').style.display = 'block';
 
     construirFiltros(datos);
-    dibujarChartDiario(datos, AREAS_PRINCIPALES);
-    dibujarChartSemanal(datos);
+    dibujarLineChart('chartDiario', datos, 'diario', AREAS_PRINCIPALES);
+    dibujarBarChart('chartSemanal', datos, 'semanal', AREAS_PRINCIPALES);
     dibujarTopAnalistas(datos);
 
     document.getElementById('fechaActualizacion').textContent =
@@ -247,13 +279,11 @@ async function cargarDatos() {
   }
 }
 
-function agruparParaLinea(datos, tipo, areasFiltro) {
-  // filas: { fecha_registro, tipo, area, total, analistas, etiqueta_periodo }
+function agruparParaSerie(datos, tipo, areasFiltro) {
   const filtradas = datos.filter(function (d) {
     return d.tipo === tipo && areasFiltro.indexOf(d.area) !== -1;
   });
 
-  // quedarnos con la última fila por (fecha, area) si hay duplicados
   const mapa = {};
   filtradas.forEach(function (d) {
     mapa[d.fecha_registro + '|' + d.area] = d;
@@ -264,37 +294,167 @@ function agruparParaLinea(datos, tipo, areasFiltro) {
   const series = areasFiltro.map(function (area) {
     return {
       label: area,
+      color: colorDeArea(area),
       data: fechas.map(function (f) {
         const fila = mapa[f + '|' + area];
         return fila ? Number(fila.total) : null;
       }),
-      borderColor: colorDeArea(area),
-      backgroundColor: colorDeArea(area),
-      tension: 0.25,
-      spanGaps: true,
     };
-  });
+  }).filter(function (s) { return s.data.some(function (v) { return v !== null; }); });
 
   return { fechas, series };
 }
 
-let chartDiarioRef = null;
-function dibujarChartDiario(datos, areasFiltro) {
-  const { fechas, series } = agruparParaLinea(datos, 'diario', areasFiltro);
-  const ctx = document.getElementById('chartDiario').getContext('2d');
-  if (chartDiarioRef) chartDiarioRef.destroy();
-  chartDiarioRef = new Chart(ctx, {
-    type: 'line',
-    data: { labels: fechas, datasets: series },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom' } },
-      scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } },
-      },
-    },
+// ------------------------------------------------------------
+// Dibuja una gráfica de línea con SVG puro, sin dependencias
+// ------------------------------------------------------------
+function crearSvgLineChart(fechas, series) {
+  const width = 900;
+  const height = 320;
+  const margin = { top: 20, right: 20, bottom: 34, left: 42 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const todosValores = series.flatMap(function (s) {
+    return s.data.filter(function (v) { return v !== null && v !== undefined; });
   });
+  const maxVal = Math.max(1, ...todosValores);
+  const n = fechas.length;
+  const xStep = n > 1 ? innerW / (n - 1) : 0;
+
+  function xPos(i) { return margin.left + i * xStep; }
+  function yPos(v) { return margin.top + innerH - (v / maxVal) * innerH; }
+
+  let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" ' +
+    'xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">';
+
+  const divisiones = 4;
+  for (let g = 0; g <= divisiones; g++) {
+    const gv = (maxVal / divisiones) * g;
+    const gy = yPos(gv);
+    svg += '<line x1="' + margin.left + '" y1="' + gy + '" x2="' + (margin.left + innerW) + '" y2="' + gy +
+      '" stroke="#E5E0F5" stroke-width="1" />';
+    svg += '<text x="' + (margin.left - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#6B6B7A">' +
+      Math.round(gv) + '</text>';
+  }
+
+  const maxEtiquetas = 7;
+  const pasoEtiqueta = Math.max(1, Math.ceil(n / maxEtiquetas));
+  for (let i = 0; i < n; i += pasoEtiqueta) {
+    svg += '<text x="' + xPos(i) + '" y="' + (height - margin.bottom + 16) +
+      '" text-anchor="middle" font-size="10" fill="#6B6B7A">' + fechas[i].slice(5) + '</text>';
+  }
+
+  series.forEach(function (s) {
+    const puntos = [];
+    let pathD = '';
+    s.data.forEach(function (v, i) {
+      if (v === null || v === undefined) return;
+      const px = xPos(i), py = yPos(v);
+      pathD += (puntos.length === 0 ? 'M' : 'L') + px + ' ' + py + ' ';
+      puntos.push({ px: px, py: py, v: v, fecha: fechas[i] });
+    });
+    if (pathD) {
+      svg += '<path d="' + pathD.trim() + '" fill="none" stroke="' + s.color + '" stroke-width="2.5" />';
+    }
+    puntos.forEach(function (p) {
+      svg += '<circle cx="' + p.px + '" cy="' + p.py + '" r="3.5" fill="' + s.color + '">' +
+        '<title>' + p.fecha + ' — ' + s.label + ': ' + p.v + '</title></circle>';
+    });
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+// ------------------------------------------------------------
+// Dibuja una gráfica de barras agrupadas con SVG puro
+// ------------------------------------------------------------
+function crearSvgBarChart(fechas, series) {
+  const width = 900;
+  const height = 320;
+  const margin = { top: 20, right: 20, bottom: 34, left: 42 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const todosValores = series.flatMap(function (s) {
+    return s.data.filter(function (v) { return v !== null && v !== undefined; });
+  });
+  const maxVal = Math.max(1, ...todosValores);
+  const n = fechas.length;
+  const numSeries = series.length || 1;
+
+  const grupoAncho = innerW / Math.max(n, 1);
+  const barraAncho = Math.max(2, (grupoAncho * 0.7) / numSeries);
+  const espacioEntreGrupos = grupoAncho * 0.15;
+
+  function yPos(v) { return margin.top + innerH - (v / maxVal) * innerH; }
+
+  let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" ' +
+    'xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">';
+
+  const divisiones = 4;
+  for (let g = 0; g <= divisiones; g++) {
+    const gv = (maxVal / divisiones) * g;
+    const gy = yPos(gv);
+    svg += '<line x1="' + margin.left + '" y1="' + gy + '" x2="' + (margin.left + innerW) + '" y2="' + gy +
+      '" stroke="#E5E0F5" stroke-width="1" />';
+    svg += '<text x="' + (margin.left - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#6B6B7A">' +
+      Math.round(gv) + '</text>';
+  }
+
+  for (let i = 0; i < n; i++) {
+    const grupoX = margin.left + i * grupoAncho + espacioEntreGrupos / 2;
+    series.forEach(function (s, si) {
+      const v = s.data[i];
+      if (v === null || v === undefined) return;
+      const bx = grupoX + si * barraAncho;
+      const by = yPos(v);
+      const bh = margin.top + innerH - by;
+      svg += '<rect x="' + bx + '" y="' + by + '" width="' + barraAncho + '" height="' + bh +
+        '" fill="' + s.color + '" rx="2">' +
+        '<title>' + fechas[i] + ' — ' + s.label + ': ' + v + '</title></rect>';
+    });
+    const centroGrupo = margin.left + i * grupoAncho + grupoAncho / 2;
+    svg += '<text x="' + centroGrupo + '" y="' + (height - margin.bottom + 16) +
+      '" text-anchor="middle" font-size="10" fill="#6B6B7A">' + fechas[i].slice(5) + '</text>';
+  }
+
+  svg += '</svg>';
+  return svg;
+}
+
+function construirLeyenda(series) {
+  let html = '<div class="chart-legend">';
+  series.forEach(function (s) {
+    html += '<div class="item"><span class="dot" style="background:' + s.color + ';"></span>' + s.label + '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function dibujarLineChart(contenedorId, datos, tipo, areasFiltro) {
+  const contenedor = document.getElementById(contenedorId);
+  const { fechas, series } = agruparParaSerie(datos, tipo, areasFiltro);
+
+  if (fechas.length === 0 || series.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay suficientes datos para graficar. Se irá llenando con cada alerta real que se envíe.</div>';
+    return;
+  }
+
+  contenedor.innerHTML = crearSvgLineChart(fechas, series) + construirLeyenda(series);
+}
+
+function dibujarBarChart(contenedorId, datos, tipo, areasFiltro) {
+  const contenedor = document.getElementById(contenedorId);
+  const { fechas, series } = agruparParaSerie(datos, tipo, areasFiltro);
+
+  if (fechas.length === 0 || series.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay suficientes datos para graficar. Se irá llenando cada lunes.</div>';
+    return;
+  }
+
+  contenedor.innerHTML = crearSvgBarChart(fechas, series) + construirLeyenda(series);
 }
 
 function construirFiltros(datos) {
@@ -314,28 +474,9 @@ function construirFiltros(datos) {
     btn.addEventListener('click', function () {
       Array.from(contenedor.children).forEach(function (b) { b.classList.remove('activo'); });
       btn.classList.add('activo');
-      dibujarChartDiario(datos, op.areas);
+      dibujarLineChart('chartDiario', datos, 'diario', op.areas);
     });
     contenedor.appendChild(btn);
-  });
-}
-
-let chartSemanalRef = null;
-function dibujarChartSemanal(datos) {
-  const { fechas, series } = agruparParaLinea(datos, 'semanal', AREAS_PRINCIPALES);
-  const ctx = document.getElementById('chartSemanal').getContext('2d');
-  if (chartSemanalRef) chartSemanalRef.destroy();
-  chartSemanalRef = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: fechas, datasets: series },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom' } },
-      scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } },
-      },
-    },
   });
 }
 
