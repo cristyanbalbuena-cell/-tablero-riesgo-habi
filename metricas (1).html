@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Métricas — Tablero de Riesgo Habi</title>
+<style>
+  :root {
+    --violet: #6A06FA;
+    --violet-dark: #3D0399;
+    --green: #00C29C;
+    --aqua: #66F7DB;
+    --text-dark: #1A1033;
+    --gray-muted: #6B6B7A;
+    --bg-light: #FAFAFF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Calibri, Arial, sans-serif;
+    background: var(--bg-light);
+    color: var(--text-dark);
+  }
+
+  header {
+    background: var(--violet);
+    color: white;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  header .subtitle {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 4px;
+  }
+
+  header a {
+    color: var(--aqua);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  header a:hover { text-decoration: underline; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .estado {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray-muted);
+    font-size: 15px;
+  }
+
+  .estado.error { color: #C0392B; }
+
+  .card {
+    background: white;
+    border: 1px solid #E5E0F5;
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 3px 10px rgba(61, 3, 153, 0.06);
+  }
+
+  .card h2 {
+    margin: 0 0 4px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+
+  .card .card-sub {
+    font-size: 13px;
+    color: var(--gray-muted);
+    margin-bottom: 16px;
+  }
+
+  .filtros {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .filtros button {
+    border: 1px solid #E5E0F5;
+    background: white;
+    color: var(--text-dark);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filtros button.activo {
+    background: var(--violet);
+    color: white;
+    border-color: var(--violet);
+  }
+
+  .chart-wrap {
+    width: 100%;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+
+  .chart-legend .item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chart-legend .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .sin-datos {
+    text-align: center;
+    color: var(--gray-muted);
+    font-size: 13px;
+    padding: 40px 0;
+  }
+
+  .top-analistas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .top-analistas .grupo h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    color: var(--violet-dark);
+  }
+
+  .top-analistas ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .top-analistas li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid #F0EDFB;
+    color: var(--text-dark);
+  }
+
+  .top-analistas li .cantidad {
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .fecha-corte {
+    font-size: 12px;
+    color: var(--gray-muted);
+    text-align: right;
+    margin-top: 24px;
+  }
+
+  /* Comparación Colombia vs México */
+  .comparacion-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .comparacion-stat {
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px;
+    background: #FAFAFF;
+    border: 1px solid #E5E0F5;
+  }
+
+  .comparacion-stat .pais-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--violet-dark);
+    margin-bottom: 8px;
+  }
+
+  .comparacion-stat .numero {
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+    font-family: Georgia, serif;
+  }
+
+  .comparacion-stat .etiqueta {
+    font-size: 12px;
+    color: var(--gray-muted);
+    margin-top: 6px;
+  }
+
+  .comparacion-bar-wrap {
+    margin-top: 18px;
+    height: 10px;
+    background: #F0EDFB;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+  }
+
+  .comparacion-bar-wrap .segmento {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  /* Botón de exportar CSV */
+  .btn-exportar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--violet);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-exportar:hover { background: var(--violet-dark); }
+
+  /* Top categorías */
+  .categorias-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .categoria-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .categoria-row .nombre {
+    font-size: 13px;
+    width: 220px;
+    flex-shrink: 0;
+    color: var(--text-dark);
+  }
+
+  .categoria-row .barra-wrap {
+    flex: 1;
+    height: 18px;
+    background: #F0EDFB;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .categoria-row .barra {
+    height: 100%;
+    background: var(--green);
+    border-radius: 4px;
+  }
+
+  .categoria-row .cantidad {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--violet-dark);
+    width: 30px;
+    text-align: right;
+  }
+
+  /* Comparación mensual */
+  .mes-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #F0EDFB;
+  }
+  .mes-row:last-child { border-bottom: none; }
+
+  .mes-row .area-nombre {
+    font-size: 13px;
+    color: var(--text-dark);
+    font-weight: 600;
+  }
+
+  .mes-row .valores {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .mes-row .valores .actual {
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .mes-row .delta {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+  .mes-row .delta.baja { background: #E3F9F1; color: #00805F; }
+  .mes-row .delta.sube { background: #FDECEC; color: #C0392B; }
+  .mes-row .delta.igual { background: #F0EDFB; color: var(--gray-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📊 Métricas — Tablero de Riesgo</h1>
+    <div class="subtitle">Habi Colombia &amp; Tuhabi México</div>
+  </div>
+  <a href="./index.html">← Volver al tablero</a>
+</header>
+
+<main>
+  <div id="estado" class="estado">Cargando histórico…</div>
+  <div id="contenido" style="display:none;">
+
+    <div class="card">
+      <h2>Tendencia diaria por área</h2>
+      <div class="card-sub">Tickets reportados en cada alerta diaria (día vencido)</div>
+      <div class="filtros" id="filtrosDiario"></div>
+      <div style="margin-bottom:16px;">
+        <label for="selectorMes" style="font-size:13px;color:var(--gray-muted);margin-right:8px;">Ver periodo:</label>
+        <select id="selectorMes" style="padding:6px 12px;border-radius:8px;border:1px solid #E5E0F5;font-size:13px;font-family:inherit;background:white;color:var(--text-dark);"></select>
+      </div>
+      <div class="chart-wrap" id="chartDiario"></div>
+    </div>
+
+    <div class="card">
+      <h2>Tendencia semanal por área</h2>
+      <div class="card-sub">Total reportado en cada alerta semanal comparativa (lunes)</div>
+      <div class="chart-wrap" id="chartSemanal"></div>
+    </div>
+
+    <div class="card">
+      <h2>Mes vs. mes anterior</h2>
+      <div class="card-sub" id="fechaComparacionMensual"></div>
+      <div id="comparacionMensual"></div>
+    </div>
+
+    <div class="card">
+      <h2>Colombia vs. México</h2>
+      <div class="card-sub" id="fechaComparacionPaises">Corte más reciente</div>
+      <div class="comparacion-grid" id="comparacionPaises"></div>
+    </div>
+
+    <div class="card">
+      <h2>Top categorías de quejas</h2>
+      <div class="card-sub" id="fechaTopCategorias">Combinado de las 3 áreas — corte más reciente</div>
+      <div class="categorias-list" id="topCategorias"></div>
+    </div>
+
+    <div class="card">
+      <h2>Top colaboradores — corte más reciente</h2>
+      <div class="card-sub" id="fechaTopAnalistas"></div>
+      <div class="top-analistas" id="topAnalistas"></div>
+    </div>
+
+    <div class="card" style="text-align:center;">
+      <button class="btn-exportar" id="btnExportarCsv">⬇️ Descargar histórico completo (CSV)</button>
+    </div>
+
+    <div class="fecha-corte" id="fechaActualizacion"></div>
+  </div>
+</main>
+
+<script>
+// ============================================================
+// Sin librerías externas (Chart.js, CDN, etc.) — todo se dibuja
+// con SVG generado a mano, para que funcione aunque la red del
+// trabajo bloquee dominios externos.
+// ============================================================
+
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbwMFgpkJtXR4JQwJe211DyTrMir3UsUO6IDcSGqCGqkP2MkXe4BHzqoLpD7soeMBWUy/exec';
+
+const COLORES_AREA = {
+  'Trámites Sellers Colombia': '#6A06FA',
+  'Trámites Buyers e Inmobiliaria Colombia': '#00C29C',
+  'Trámites México (todo)': '#1A1033',
+  'México - Sellers': '#8A3FFC',
+  'México - Buyers': '#00A884',
+  'México - Inmobiliaria': '#B8860B',
+};
+
+const AREAS_PRINCIPALES = [
+  'Trámites Sellers Colombia',
+  'Trámites Buyers e Inmobiliaria Colombia',
+  'Trámites México (todo)',
+];
+
+// ------------------------------------------------------------
+// META / OBJETIVO — línea de referencia en las gráficas.
+// Ajusta estos números cuando tengan un objetivo real definido;
+// por ahora son un punto de partida razonable para conversar.
+// ------------------------------------------------------------
+const META_DIARIA = 5;   // tickets por día, por área, como referencia
+const META_SEMANAL = 15; // tickets por semana, por área, como referencia
+
+let datosGlobales = [];
+let areaFiltroActivo = null; // se inicializa en construirFiltros
+let mesFiltroActivo = 'all';
+
+function colorDeArea(area) {
+  return COLORES_AREA[area] || '#999999';
+}
+
+async function cargarDatos() {
+  try {
+    const resp = await fetch(BASE_URL + '?action=getMetricas', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const datos = await resp.json();
+    datosGlobales = datos;
+
+    document.getElementById('estado').style.display = 'none';
+    document.getElementById('contenido').style.display = 'block';
+
+    construirFiltros(datos);
+    construirSelectorMes(datos);
+    redibujarDiario(datos);
+    dibujarBarChart('chartSemanal', datos, 'semanal', AREAS_PRINCIPALES);
+    dibujarComparacionMensual(datos);
+    dibujarComparacionPaises(datos);
+    dibujarTopCategorias(datos);
+    dibujarTopAnalistas(datos);
+
+    document.getElementById('fechaActualizacion').textContent =
+      'Datos actualizados al cargar esta página: ' + new Date().toLocaleString('es-MX');
+  } catch (err) {
+    console.error(err);
+    const estado = document.getElementById('estado');
+    estado.textContent = 'No se pudo cargar el histórico. Revisa que el endpoint "getMetricas" esté publicado en Apps Script (Implementar → Nueva versión). Detalle: ' + err.message;
+    estado.classList.add('error');
+  }
+}
+
+function agruparParaSerie(datos, tipo, areasFiltro, mesFiltro) {
+  const filtradas = datos.filter(function (d) {
+    if (d.tipo !== tipo) return false;
+    if (areasFiltro.indexOf(d.area) === -1) return false;
+    if (mesFiltro && mesFiltro !== 'all' && !d.fecha_registro.startsWith(mesFiltro)) return false;
+    return true;
+  });
+
+  const mapa = {};
+  filtradas.forEach(function (d) {
+    mapa[d.fecha_registro + '|' + d.area] = d;
+  });
+
+  const fechas = Array.from(new Set(Object.values(mapa).map(function (d) { return d.fecha_registro; }))).sort();
+
+  const series = areasFiltro.map(function (area) {
+    return {
+      label: area,
+      color: colorDeArea(area),
+      data: fechas.map(function (f) {
+        const fila = mapa[f + '|' + area];
+        return fila ? Number(fila.total) : null;
+      }),
+    };
+  }).filter(function (s) { return s.data.some(function (v) { return v !== null; }); });
+
+  return { fechas, series };
+}
+
+// ------------------------------------------------------------
+// Dibuja una gráfica de línea con SVG puro, sin dependencias
+// ------------------------------------------------------------
+function crearSvgLineChart(fechas, series, metaValor) {
+  const width = 900;
+  const height = 320;
+  const margin = { top: 20, right: 20, bottom: 34, left: 42 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const todosValores = series.flatMap(function (s) {
+    return s.data.filter(function (v) { return v !== null && v !== undefined; });
+  });
+  const maxVal = Math.max(1, metaValor || 0, ...todosValores);
+  const n = fechas.length;
+  const xStep = n > 1 ? innerW / (n - 1) : 0;
+
+  function xPos(i) { return margin.left + i * xStep; }
+  function yPos(v) { return margin.top + innerH - (v / maxVal) * innerH; }
+
+  let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" ' +
+    'xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">';
+
+  const divisiones = 4;
+  for (let g = 0; g <= divisiones; g++) {
+    const gv = (maxVal / divisiones) * g;
+    const gy = yPos(gv);
+    svg += '<line x1="' + margin.left + '" y1="' + gy + '" x2="' + (margin.left + innerW) + '" y2="' + gy +
+      '" stroke="#E5E0F5" stroke-width="1" />';
+    svg += '<text x="' + (margin.left - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#6B6B7A">' +
+      Math.round(gv) + '</text>';
+  }
+
+  if (metaValor) {
+    const metaY = yPos(metaValor);
+    svg += '<line x1="' + margin.left + '" y1="' + metaY + '" x2="' + (margin.left + innerW) + '" y2="' + metaY +
+      '" stroke="#B8860B" stroke-width="1.5" stroke-dasharray="6,4" />';
+    svg += '<text x="' + (margin.left + innerW - 4) + '" y="' + (metaY - 6) +
+      '" text-anchor="end" font-size="11" fill="#B8860B" font-weight="bold">Meta: ' + metaValor + '</text>';
+  }
+
+  const maxEtiquetas = 7;
+  const pasoEtiqueta = Math.max(1, Math.ceil(n / maxEtiquetas));
+  for (let i = 0; i < n; i += pasoEtiqueta) {
+    svg += '<text x="' + xPos(i) + '" y="' + (height - margin.bottom + 16) +
+      '" text-anchor="middle" font-size="10" fill="#6B6B7A">' + fechas[i].slice(5) + '</text>';
+  }
+
+  series.forEach(function (s) {
+    const puntos = [];
+    let pathD = '';
+    s.data.forEach(function (v, i) {
+      if (v === null || v === undefined) return;
+      const px = xPos(i), py = yPos(v);
+      pathD += (puntos.length === 0 ? 'M' : 'L') + px + ' ' + py + ' ';
+      puntos.push({ px: px, py: py, v: v, fecha: fechas[i] });
+    });
+    if (pathD) {
+      svg += '<path d="' + pathD.trim() + '" fill="none" stroke="' + s.color + '" stroke-width="2.5" />';
+    }
+    puntos.forEach(function (p) {
+      svg += '<circle cx="' + p.px + '" cy="' + p.py + '" r="3.5" fill="' + s.color + '">' +
+        '<title>' + p.fecha + ' — ' + s.label + ': ' + p.v + '</title></circle>';
+    });
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+// ------------------------------------------------------------
+// Dibuja una gráfica de barras agrupadas con SVG puro
+// ------------------------------------------------------------
+function crearSvgBarChart(fechas, series, metaValor) {
+  const width = 900;
+  const height = 320;
+  const margin = { top: 20, right: 20, bottom: 34, left: 42 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const todosValores = series.flatMap(function (s) {
+    return s.data.filter(function (v) { return v !== null && v !== undefined; });
+  });
+  const maxVal = Math.max(1, metaValor || 0, ...todosValores);
+  const n = fechas.length;
+  const numSeries = series.length || 1;
+
+  const grupoAncho = innerW / Math.max(n, 1);
+  const barraAncho = Math.max(2, (grupoAncho * 0.7) / numSeries);
+  const espacioEntreGrupos = grupoAncho * 0.15;
+
+  function yPos(v) { return margin.top + innerH - (v / maxVal) * innerH; }
+
+  let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" ' +
+    'xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">';
+
+  const divisiones = 4;
+  for (let g = 0; g <= divisiones; g++) {
+    const gv = (maxVal / divisiones) * g;
+    const gy = yPos(gv);
+    svg += '<line x1="' + margin.left + '" y1="' + gy + '" x2="' + (margin.left + innerW) + '" y2="' + gy +
+      '" stroke="#E5E0F5" stroke-width="1" />';
+    svg += '<text x="' + (margin.left - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#6B6B7A">' +
+      Math.round(gv) + '</text>';
+  }
+
+  if (metaValor) {
+    const metaY = yPos(metaValor);
+    svg += '<line x1="' + margin.left + '" y1="' + metaY + '" x2="' + (margin.left + innerW) + '" y2="' + metaY +
+      '" stroke="#B8860B" stroke-width="1.5" stroke-dasharray="6,4" />';
+    svg += '<text x="' + (margin.left + innerW - 4) + '" y="' + (metaY - 6) +
+      '" text-anchor="end" font-size="11" fill="#B8860B" font-weight="bold">Meta: ' + metaValor + '</text>';
+  }
+
+  for (let i = 0; i < n; i++) {
+    const grupoX = margin.left + i * grupoAncho + espacioEntreGrupos / 2;
+    series.forEach(function (s, si) {
+      const v = s.data[i];
+      if (v === null || v === undefined) return;
+      const bx = grupoX + si * barraAncho;
+      const by = yPos(v);
+      const bh = margin.top + innerH - by;
+      svg += '<rect x="' + bx + '" y="' + by + '" width="' + barraAncho + '" height="' + bh +
+        '" fill="' + s.color + '" rx="2">' +
+        '<title>' + fechas[i] + ' — ' + s.label + ': ' + v + '</title></rect>';
+    });
+  }
+
+  const maxEtiquetasBar = 12;
+  const pasoEtiquetaBar = Math.max(1, Math.ceil(n / maxEtiquetasBar));
+  for (let i = 0; i < n; i += pasoEtiquetaBar) {
+    const centroGrupo = margin.left + i * grupoAncho + grupoAncho / 2;
+    svg += '<text x="' + centroGrupo + '" y="' + (height - margin.bottom + 16) +
+      '" text-anchor="middle" font-size="10" fill="#6B6B7A">' + fechas[i].slice(5) + '</text>';
+  }
+
+  svg += '</svg>';
+  return svg;
+}
+
+function construirLeyenda(series) {
+  let html = '<div class="chart-legend">';
+  series.forEach(function (s) {
+    html += '<div class="item"><span class="dot" style="background:' + s.color + ';"></span>' + s.label + '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function dibujarLineChart(contenedorId, datos, tipo, areasFiltro, mesFiltro) {
+  const contenedor = document.getElementById(contenedorId);
+  const { fechas, series } = agruparParaSerie(datos, tipo, areasFiltro, mesFiltro);
+
+  if (fechas.length === 0 || series.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">No hay datos para el periodo/áreas seleccionadas.</div>';
+    return;
+  }
+
+  contenedor.innerHTML = crearSvgLineChart(fechas, series, META_DIARIA) + construirLeyenda(series);
+}
+
+function dibujarBarChart(contenedorId, datos, tipo, areasFiltro) {
+  const contenedor = document.getElementById(contenedorId);
+  const { fechas, series } = agruparParaSerie(datos, tipo, areasFiltro);
+
+  if (fechas.length === 0 || series.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay suficientes datos para graficar. Se irá llenando cada lunes.</div>';
+    return;
+  }
+
+  contenedor.innerHTML = crearSvgBarChart(fechas, series, META_SEMANAL) + construirLeyenda(series);
+}
+
+function construirFiltros(datos) {
+  const contenedor = document.getElementById('filtrosDiario');
+  contenedor.innerHTML = '';
+
+  const opciones = [
+    { label: 'Vista general', areas: AREAS_PRINCIPALES },
+    { label: 'Solo Colombia', areas: ['Trámites Sellers Colombia', 'Trámites Buyers e Inmobiliaria Colombia'] },
+    { label: 'Solo México (por sub-área)', areas: ['México - Sellers', 'México - Buyers', 'México - Inmobiliaria'] },
+  ];
+
+  areaFiltroActivo = opciones[0].areas;
+
+  opciones.forEach(function (op, i) {
+    const btn = document.createElement('button');
+    btn.textContent = op.label;
+    if (i === 0) btn.classList.add('activo');
+    btn.addEventListener('click', function () {
+      Array.from(contenedor.children).forEach(function (b) { b.classList.remove('activo'); });
+      btn.classList.add('activo');
+      areaFiltroActivo = op.areas;
+      redibujarDiario(datos);
+    });
+    contenedor.appendChild(btn);
+  });
+}
+
+// ------------------------------------------------------------
+// Construye el selector de mes con los meses realmente presentes
+// en los datos (más "Todo el histórico" y "Últimos 30 días")
+// ------------------------------------------------------------
+function construirSelectorMes(datos) {
+  const select = document.getElementById('selectorMes');
+  select.innerHTML = '';
+
+  const nombresMes = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+  const mesesUnicos = Array.from(new Set(
+    datos.filter(function (d) { return d.tipo === 'diario'; })
+      .map(function (d) { return d.fecha_registro.slice(0, 7); }) // "YYYY-MM"
+  )).sort().reverse();
+
+  const opcionTodos = document.createElement('option');
+  opcionTodos.value = 'all';
+  opcionTodos.textContent = 'Todo el histórico';
+  select.appendChild(opcionTodos);
+
+  const opcion30 = document.createElement('option');
+  opcion30.value = 'ultimos30';
+  opcion30.textContent = 'Últimos 30 días';
+  select.appendChild(opcion30);
+
+  mesesUnicos.forEach(function (ym) {
+    const partes = ym.split('-');
+    const nombre = nombresMes[parseInt(partes[1], 10) - 1] + ' ' + partes[0];
+    const opcion = document.createElement('option');
+    opcion.value = ym;
+    opcion.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+    select.appendChild(opcion);
+  });
+
+  select.value = 'all';
+  mesFiltroActivo = 'all';
+
+  select.addEventListener('change', function () {
+    mesFiltroActivo = select.value;
+    redibujarDiario(datos);
+  });
+}
+
+// ------------------------------------------------------------
+// Redibuja la gráfica diaria combinando el filtro de área + mes.
+// "ultimos30" se resuelve a un rango de fechas real antes de graficar.
+// ------------------------------------------------------------
+function redibujarDiario(datos) {
+  if (mesFiltroActivo === 'ultimos30') {
+    const todasFechas = Array.from(new Set(
+      datos.filter(function (d) { return d.tipo === 'diario'; }).map(function (d) { return d.fecha_registro; })
+    )).sort();
+    const desde = todasFechas.length > 30 ? todasFechas[todasFechas.length - 30] : todasFechas[0];
+    const datosFiltrados = datos.filter(function (d) { return d.tipo !== 'diario' || d.fecha_registro >= desde; });
+    dibujarLineChart('chartDiario', datosFiltrados, 'diario', areaFiltroActivo, 'all');
+  } else {
+    dibujarLineChart('chartDiario', datos, 'diario', areaFiltroActivo, mesFiltroActivo);
+  }
+}
+
+function dibujarTopAnalistas(datos) {
+  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  if (diarios.length === 0) {
+    document.getElementById('topAnalistas').textContent = 'Aún no hay datos suficientes.';
+    return;
+  }
+
+  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
+  document.getElementById('fechaTopAnalistas').textContent = 'Corte del ' + fechaMasReciente;
+
+  const contenedor = document.getElementById('topAnalistas');
+  contenedor.innerHTML = '';
+
+  AREAS_PRINCIPALES.forEach(function (area) {
+    const fila = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === area; });
+    const div = document.createElement('div');
+    div.className = 'grupo';
+
+    const h3 = document.createElement('h3');
+    h3.textContent = area;
+    div.appendChild(h3);
+
+    const ul = document.createElement('ul');
+    if (fila && fila.analistas && Object.keys(fila.analistas).length > 0) {
+      const entradas = Object.entries(fila.analistas).sort(function (a, b) { return b[1] - a[1]; });
+      entradas.forEach(function (e) {
+        const li = document.createElement('li');
+        li.innerHTML = '<span>' + e[0] + '</span><span class="cantidad">' + e[1] + '</span>';
+        ul.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.textContent = 'Sin datos para este corte.';
+      ul.appendChild(li);
+    }
+    div.appendChild(ul);
+    contenedor.appendChild(div);
+  });
+}
+
+// ------------------------------------------------------------
+// Comparación mes actual vs. mes anterior, por área principal
+// ------------------------------------------------------------
+function dibujarComparacionMensual(datos) {
+  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  const contenedor = document.getElementById('comparacionMensual');
+
+  if (diarios.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos suficientes.</div>';
+    return;
+  }
+
+  const mesesUnicos = Array.from(new Set(diarios.map(function (d) { return d.fecha_registro.slice(0, 7); }))).sort();
+  const mesActual = mesesUnicos[mesesUnicos.length - 1];
+  const mesAnterior = mesesUnicos.length > 1 ? mesesUnicos[mesesUnicos.length - 2] : null;
+
+  const nombresMes = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function nombreDeYm(ym) {
+    if (!ym) return '';
+    const partes = ym.split('-');
+    return nombresMes[parseInt(partes[1], 10) - 1] + ' ' + partes[0];
+  }
+
+  document.getElementById('fechaComparacionMensual').textContent =
+    nombreDeYm(mesActual).replace(/^./, function (c) { return c.toUpperCase(); }) +
+    (mesAnterior ? ' vs. ' + nombreDeYm(mesAnterior) : ' (sin mes anterior completo para comparar todavía)');
+
+  function totalDeArea(area, ym) {
+    return diarios
+      .filter(function (d) { return d.area === area && d.fecha_registro.slice(0, 7) === ym; })
+      .reduce(function (acc, d) { return acc + Number(d.total); }, 0);
+  }
+
+  contenedor.innerHTML = AREAS_PRINCIPALES.map(function (area) {
+    const actual = totalDeArea(area, mesActual);
+    const anterior = mesAnterior ? totalDeArea(area, mesAnterior) : null;
+    let deltaHtml = '';
+    if (anterior !== null) {
+      const delta = actual - anterior;
+      const pct = anterior > 0 ? Math.round((delta / anterior) * 100) : null;
+      const claseDelta = delta < 0 ? 'baja' : (delta > 0 ? 'sube' : 'igual');
+      const flecha = delta < 0 ? '↓' : (delta > 0 ? '↑' : '→');
+      const textoPct = pct !== null ? (pct > 0 ? '+' + pct : pct) + '%' : '';
+      deltaHtml = '<span class="delta ' + claseDelta + '">' + flecha + ' ' + Math.abs(delta) + ' (' + textoPct + ')</span>';
+    }
+    return '<div class="mes-row">' +
+      '<div class="area-nombre">' + area + '</div>' +
+      '<div class="valores"><span class="actual" style="color:' + colorDeArea(area) + ';">' + actual + '</span>' + deltaHtml + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ------------------------------------------------------------
+// Comparación Colombia vs. México — corte más reciente
+// ------------------------------------------------------------
+function dibujarComparacionPaises(datos) {
+  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  const contenedor = document.getElementById('comparacionPaises');
+
+  if (diarios.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos suficientes.</div>';
+    return;
+  }
+
+  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
+  document.getElementById('fechaComparacionPaises').textContent = 'Corte del ' + fechaMasReciente;
+
+  const filaSellersCo = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites Sellers Colombia'; });
+  const filaBuyersCo = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites Buyers e Inmobiliaria Colombia'; });
+  const filaMx = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites México (todo)'; });
+
+  const totalCo = (filaSellersCo ? Number(filaSellersCo.total) : 0) + (filaBuyersCo ? Number(filaBuyersCo.total) : 0);
+  const totalMx = filaMx ? Number(filaMx.total) : 0;
+  const totalGeneral = Math.max(1, totalCo + totalMx);
+  const pctCo = Math.round((totalCo / totalGeneral) * 100);
+  const pctMx = 100 - pctCo;
+
+  contenedor.innerHTML =
+    '<div class="comparacion-stat">' +
+      '<div class="pais-label">🇨🇴 Colombia</div>' +
+      '<div class="numero" style="color:' + colorDeArea('Trámites Sellers Colombia') + ';">' + totalCo + '</div>' +
+      '<div class="etiqueta">tickets del día</div>' +
+    '</div>' +
+    '<div class="comparacion-stat">' +
+      '<div class="pais-label">🇲🇽 México</div>' +
+      '<div class="numero" style="color:' + colorDeArea('Trámites México (todo)') + ';">' + totalMx + '</div>' +
+      '<div class="etiqueta">tickets del día</div>' +
+    '</div>';
+
+  const barra = document.createElement('div');
+  barra.className = 'comparacion-bar-wrap';
+  barra.style.gridColumn = '1 / -1';
+  barra.innerHTML =
+    '<div class="segmento" style="width:' + pctCo + '%; background:' + colorDeArea('Trámites Sellers Colombia') + ';" title="Colombia: ' + pctCo + '%"></div>' +
+    '<div class="segmento" style="width:' + pctMx + '%; background:' + colorDeArea('Trámites México (todo)') + ';" title="México: ' + pctMx + '%"></div>';
+  contenedor.appendChild(barra);
+}
+
+// ------------------------------------------------------------
+// Top categorías de quejas — combinado de las 3 áreas, corte más reciente
+// ------------------------------------------------------------
+function dibujarTopCategorias(datos) {
+  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  const contenedor = document.getElementById('topCategorias');
+
+  if (diarios.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos suficientes.</div>';
+    return;
+  }
+
+  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
+  document.getElementById('fechaTopCategorias').textContent = 'Combinado de las 3 áreas — corte del ' + fechaMasReciente;
+
+  const filasDeHoy = diarios.filter(function (d) { return d.fecha_registro === fechaMasReciente; });
+  const combinado = {};
+  filasDeHoy.forEach(function (fila) {
+    const cats = fila.categorias || {};
+    Object.keys(cats).forEach(function (nombre) {
+      combinado[nombre] = (combinado[nombre] || 0) + cats[nombre];
+    });
+  });
+
+  const entradas = Object.entries(combinado).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8);
+
+  if (entradas.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Sin categorías registradas en este corte todavía (se llenará con la próxima alerta real).</div>';
+    return;
+  }
+
+  const maxCantidad = entradas[0][1];
+  contenedor.innerHTML = entradas.map(function (e) {
+    const pct = Math.max(6, Math.round((e[1] / maxCantidad) * 100));
+    return '<div class="categoria-row">' +
+      '<div class="nombre">' + e[0] + '</div>' +
+      '<div class="barra-wrap"><div class="barra" style="width:' + pct + '%;"></div></div>' +
+      '<div class="cantidad">' + e[1] + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ------------------------------------------------------------
+// Exportar todo el histórico crudo a un archivo CSV descargable
+// ------------------------------------------------------------
+function exportarHistoricoCsv() {
+  if (!datosGlobales || datosGlobales.length === 0) {
+    alert('Todavía no hay datos para exportar.');
+    return;
+  }
+
+  const encabezados = ['fecha_registro', 'tipo', 'area', 'total', 'etiqueta_periodo', 'analistas_json', 'categorias_json'];
+  const filas = datosGlobales.map(function (d) {
+    return [
+      d.fecha_registro,
+      d.tipo,
+      d.area,
+      d.total,
+      d.etiqueta_periodo || '',
+      JSON.stringify(d.analistas || {}),
+      JSON.stringify(d.categorias || {}),
+    ];
+  });
+
+  function escaparCelda(valor) {
+    const texto = String(valor === undefined || valor === null ? '' : valor);
+    if (texto.includes(',') || texto.includes('"') || texto.includes('\n')) {
+      return '"' + texto.replace(/"/g, '""') + '"';
+    }
+    return texto;
+  }
+
+  const lineas = [encabezados.join(',')].concat(
+    filas.map(function (fila) { return fila.map(escaparCelda).join(','); })
+  );
+  const csv = '\uFEFF' + lineas.join('\n'); // BOM para que Excel lea bien los acentos
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'historico_metricas_habi_' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btnExportarCsv').addEventListener('click', exportarHistoricoCsv);
+
+cargarDatos();
+</script>
+
+</body>
+</html>
