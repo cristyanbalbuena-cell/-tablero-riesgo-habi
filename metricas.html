@@ -296,6 +296,44 @@
     width: 30px;
     text-align: right;
   }
+
+  /* Comparación mensual */
+  .mes-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #F0EDFB;
+  }
+  .mes-row:last-child { border-bottom: none; }
+
+  .mes-row .area-nombre {
+    font-size: 13px;
+    color: var(--text-dark);
+    font-weight: 600;
+  }
+
+  .mes-row .valores {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .mes-row .valores .actual {
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .mes-row .delta {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+  .mes-row .delta.baja { background: #E3F9F1; color: #00805F; }
+  .mes-row .delta.sube { background: #FDECEC; color: #C0392B; }
+  .mes-row .delta.igual { background: #F0EDFB; color: var(--gray-muted); }
 </style>
 </head>
 <body>
@@ -316,6 +354,10 @@
       <h2>Tendencia diaria por área</h2>
       <div class="card-sub">Tickets reportados en cada alerta diaria (día vencido)</div>
       <div class="filtros" id="filtrosDiario"></div>
+      <div style="margin-bottom:16px;">
+        <label for="selectorMes" style="font-size:13px;color:var(--gray-muted);margin-right:8px;">Ver periodo:</label>
+        <select id="selectorMes" style="padding:6px 12px;border-radius:8px;border:1px solid #E5E0F5;font-size:13px;font-family:inherit;background:white;color:var(--text-dark);"></select>
+      </div>
       <div class="chart-wrap" id="chartDiario"></div>
     </div>
 
@@ -323,6 +365,12 @@
       <h2>Tendencia semanal por área</h2>
       <div class="card-sub">Total reportado en cada alerta semanal comparativa (lunes)</div>
       <div class="chart-wrap" id="chartSemanal"></div>
+    </div>
+
+    <div class="card">
+      <h2>Mes vs. mes anterior</h2>
+      <div class="card-sub" id="fechaComparacionMensual"></div>
+      <div id="comparacionMensual"></div>
     </div>
 
     <div class="card">
@@ -384,6 +432,8 @@ const META_DIARIA = 5;   // tickets por día, por área, como referencia
 const META_SEMANAL = 15; // tickets por semana, por área, como referencia
 
 let datosGlobales = [];
+let areaFiltroActivo = null; // se inicializa en construirFiltros
+let mesFiltroActivo = 'all';
 
 function colorDeArea(area) {
   return COLORES_AREA[area] || '#999999';
@@ -400,8 +450,10 @@ async function cargarDatos() {
     document.getElementById('contenido').style.display = 'block';
 
     construirFiltros(datos);
-    dibujarLineChart('chartDiario', datos, 'diario', AREAS_PRINCIPALES);
+    construirSelectorMes(datos);
+    redibujarDiario(datos);
     dibujarBarChart('chartSemanal', datos, 'semanal', AREAS_PRINCIPALES);
+    dibujarComparacionMensual(datos);
     dibujarComparacionPaises(datos);
     dibujarTopCategorias(datos);
     dibujarTopAnalistas(datos);
@@ -416,9 +468,12 @@ async function cargarDatos() {
   }
 }
 
-function agruparParaSerie(datos, tipo, areasFiltro) {
+function agruparParaSerie(datos, tipo, areasFiltro, mesFiltro) {
   const filtradas = datos.filter(function (d) {
-    return d.tipo === tipo && areasFiltro.indexOf(d.area) !== -1;
+    if (d.tipo !== tipo) return false;
+    if (areasFiltro.indexOf(d.area) === -1) return false;
+    if (mesFiltro && mesFiltro !== 'all' && !d.fecha_registro.startsWith(mesFiltro)) return false;
+    return true;
   });
 
   const mapa = {};
@@ -568,6 +623,11 @@ function crearSvgBarChart(fechas, series, metaValor) {
         '" fill="' + s.color + '" rx="2">' +
         '<title>' + fechas[i] + ' — ' + s.label + ': ' + v + '</title></rect>';
     });
+  }
+
+  const maxEtiquetasBar = 12;
+  const pasoEtiquetaBar = Math.max(1, Math.ceil(n / maxEtiquetasBar));
+  for (let i = 0; i < n; i += pasoEtiquetaBar) {
     const centroGrupo = margin.left + i * grupoAncho + grupoAncho / 2;
     svg += '<text x="' + centroGrupo + '" y="' + (height - margin.bottom + 16) +
       '" text-anchor="middle" font-size="10" fill="#6B6B7A">' + fechas[i].slice(5) + '</text>';
@@ -586,12 +646,12 @@ function construirLeyenda(series) {
   return html;
 }
 
-function dibujarLineChart(contenedorId, datos, tipo, areasFiltro) {
+function dibujarLineChart(contenedorId, datos, tipo, areasFiltro, mesFiltro) {
   const contenedor = document.getElementById(contenedorId);
-  const { fechas, series } = agruparParaSerie(datos, tipo, areasFiltro);
+  const { fechas, series } = agruparParaSerie(datos, tipo, areasFiltro, mesFiltro);
 
   if (fechas.length === 0 || series.length === 0) {
-    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay suficientes datos para graficar. Se irá llenando con cada alerta real que se envíe.</div>';
+    contenedor.innerHTML = '<div class="sin-datos">No hay datos para el periodo/áreas seleccionadas.</div>';
     return;
   }
 
@@ -620,6 +680,8 @@ function construirFiltros(datos) {
     { label: 'Solo México (por sub-área)', areas: ['México - Sellers', 'México - Buyers', 'México - Inmobiliaria'] },
   ];
 
+  areaFiltroActivo = opciones[0].areas;
+
   opciones.forEach(function (op, i) {
     const btn = document.createElement('button');
     btn.textContent = op.label;
@@ -627,10 +689,71 @@ function construirFiltros(datos) {
     btn.addEventListener('click', function () {
       Array.from(contenedor.children).forEach(function (b) { b.classList.remove('activo'); });
       btn.classList.add('activo');
-      dibujarLineChart('chartDiario', datos, 'diario', op.areas);
+      areaFiltroActivo = op.areas;
+      redibujarDiario(datos);
     });
     contenedor.appendChild(btn);
   });
+}
+
+// ------------------------------------------------------------
+// Construye el selector de mes con los meses realmente presentes
+// en los datos (más "Todo el histórico" y "Últimos 30 días")
+// ------------------------------------------------------------
+function construirSelectorMes(datos) {
+  const select = document.getElementById('selectorMes');
+  select.innerHTML = '';
+
+  const nombresMes = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+  const mesesUnicos = Array.from(new Set(
+    datos.filter(function (d) { return d.tipo === 'diario'; })
+      .map(function (d) { return d.fecha_registro.slice(0, 7); }) // "YYYY-MM"
+  )).sort().reverse();
+
+  const opcionTodos = document.createElement('option');
+  opcionTodos.value = 'all';
+  opcionTodos.textContent = 'Todo el histórico';
+  select.appendChild(opcionTodos);
+
+  const opcion30 = document.createElement('option');
+  opcion30.value = 'ultimos30';
+  opcion30.textContent = 'Últimos 30 días';
+  select.appendChild(opcion30);
+
+  mesesUnicos.forEach(function (ym) {
+    const partes = ym.split('-');
+    const nombre = nombresMes[parseInt(partes[1], 10) - 1] + ' ' + partes[0];
+    const opcion = document.createElement('option');
+    opcion.value = ym;
+    opcion.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+    select.appendChild(opcion);
+  });
+
+  select.value = 'all';
+  mesFiltroActivo = 'all';
+
+  select.addEventListener('change', function () {
+    mesFiltroActivo = select.value;
+    redibujarDiario(datos);
+  });
+}
+
+// ------------------------------------------------------------
+// Redibuja la gráfica diaria combinando el filtro de área + mes.
+// "ultimos30" se resuelve a un rango de fechas real antes de graficar.
+// ------------------------------------------------------------
+function redibujarDiario(datos) {
+  if (mesFiltroActivo === 'ultimos30') {
+    const todasFechas = Array.from(new Set(
+      datos.filter(function (d) { return d.tipo === 'diario'; }).map(function (d) { return d.fecha_registro; })
+    )).sort();
+    const desde = todasFechas.length > 30 ? todasFechas[todasFechas.length - 30] : todasFechas[0];
+    const datosFiltrados = datos.filter(function (d) { return d.tipo !== 'diario' || d.fecha_registro >= desde; });
+    dibujarLineChart('chartDiario', datosFiltrados, 'diario', areaFiltroActivo, 'all');
+  } else {
+    dibujarLineChart('chartDiario', datos, 'diario', areaFiltroActivo, mesFiltroActivo);
+  }
 }
 
 function dibujarTopAnalistas(datos) {
@@ -671,6 +794,58 @@ function dibujarTopAnalistas(datos) {
     div.appendChild(ul);
     contenedor.appendChild(div);
   });
+}
+
+// ------------------------------------------------------------
+// Comparación mes actual vs. mes anterior, por área principal
+// ------------------------------------------------------------
+function dibujarComparacionMensual(datos) {
+  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  const contenedor = document.getElementById('comparacionMensual');
+
+  if (diarios.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos suficientes.</div>';
+    return;
+  }
+
+  const mesesUnicos = Array.from(new Set(diarios.map(function (d) { return d.fecha_registro.slice(0, 7); }))).sort();
+  const mesActual = mesesUnicos[mesesUnicos.length - 1];
+  const mesAnterior = mesesUnicos.length > 1 ? mesesUnicos[mesesUnicos.length - 2] : null;
+
+  const nombresMes = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function nombreDeYm(ym) {
+    if (!ym) return '';
+    const partes = ym.split('-');
+    return nombresMes[parseInt(partes[1], 10) - 1] + ' ' + partes[0];
+  }
+
+  document.getElementById('fechaComparacionMensual').textContent =
+    nombreDeYm(mesActual).replace(/^./, function (c) { return c.toUpperCase(); }) +
+    (mesAnterior ? ' vs. ' + nombreDeYm(mesAnterior) : ' (sin mes anterior completo para comparar todavía)');
+
+  function totalDeArea(area, ym) {
+    return diarios
+      .filter(function (d) { return d.area === area && d.fecha_registro.slice(0, 7) === ym; })
+      .reduce(function (acc, d) { return acc + Number(d.total); }, 0);
+  }
+
+  contenedor.innerHTML = AREAS_PRINCIPALES.map(function (area) {
+    const actual = totalDeArea(area, mesActual);
+    const anterior = mesAnterior ? totalDeArea(area, mesAnterior) : null;
+    let deltaHtml = '';
+    if (anterior !== null) {
+      const delta = actual - anterior;
+      const pct = anterior > 0 ? Math.round((delta / anterior) * 100) : null;
+      const claseDelta = delta < 0 ? 'baja' : (delta > 0 ? 'sube' : 'igual');
+      const flecha = delta < 0 ? '↓' : (delta > 0 ? '↑' : '→');
+      const textoPct = pct !== null ? (pct > 0 ? '+' + pct : pct) + '%' : '';
+      deltaHtml = '<span class="delta ' + claseDelta + '">' + flecha + ' ' + Math.abs(delta) + ' (' + textoPct + ')</span>';
+    }
+    return '<div class="mes-row">' +
+      '<div class="area-nombre">' + area + '</div>' +
+      '<div class="valores"><span class="actual" style="color:' + colorDeArea(area) + ';">' + actual + '</span>' + deltaHtml + '</div>' +
+    '</div>';
+  }).join('');
 }
 
 // ------------------------------------------------------------
