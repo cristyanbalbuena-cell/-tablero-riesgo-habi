@@ -188,6 +188,114 @@
     text-align: right;
     margin-top: 24px;
   }
+
+  /* Comparación Colombia vs México */
+  .comparacion-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .comparacion-stat {
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px;
+    background: #FAFAFF;
+    border: 1px solid #E5E0F5;
+  }
+
+  .comparacion-stat .pais-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--violet-dark);
+    margin-bottom: 8px;
+  }
+
+  .comparacion-stat .numero {
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+    font-family: Georgia, serif;
+  }
+
+  .comparacion-stat .etiqueta {
+    font-size: 12px;
+    color: var(--gray-muted);
+    margin-top: 6px;
+  }
+
+  .comparacion-bar-wrap {
+    margin-top: 18px;
+    height: 10px;
+    background: #F0EDFB;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+  }
+
+  .comparacion-bar-wrap .segmento {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  /* Botón de exportar CSV */
+  .btn-exportar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--violet);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-exportar:hover { background: var(--violet-dark); }
+
+  /* Top categorías */
+  .categorias-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .categoria-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .categoria-row .nombre {
+    font-size: 13px;
+    width: 220px;
+    flex-shrink: 0;
+    color: var(--text-dark);
+  }
+
+  .categoria-row .barra-wrap {
+    flex: 1;
+    height: 18px;
+    background: #F0EDFB;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .categoria-row .barra {
+    height: 100%;
+    background: var(--green);
+    border-radius: 4px;
+  }
+
+  .categoria-row .cantidad {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--violet-dark);
+    width: 30px;
+    text-align: right;
+  }
 </style>
 </head>
 <body>
@@ -218,9 +326,25 @@
     </div>
 
     <div class="card">
+      <h2>Colombia vs. México</h2>
+      <div class="card-sub" id="fechaComparacionPaises">Corte más reciente</div>
+      <div class="comparacion-grid" id="comparacionPaises"></div>
+    </div>
+
+    <div class="card">
+      <h2>Top categorías de quejas</h2>
+      <div class="card-sub" id="fechaTopCategorias">Combinado de las 3 áreas — corte más reciente</div>
+      <div class="categorias-list" id="topCategorias"></div>
+    </div>
+
+    <div class="card">
       <h2>Top colaboradores — corte más reciente</h2>
       <div class="card-sub" id="fechaTopAnalistas"></div>
       <div class="top-analistas" id="topAnalistas"></div>
+    </div>
+
+    <div class="card" style="text-align:center;">
+      <button class="btn-exportar" id="btnExportarCsv">⬇️ Descargar histórico completo (CSV)</button>
     </div>
 
     <div class="fecha-corte" id="fechaActualizacion"></div>
@@ -251,6 +375,16 @@ const AREAS_PRINCIPALES = [
   'Trámites México (todo)',
 ];
 
+// ------------------------------------------------------------
+// META / OBJETIVO — línea de referencia en las gráficas.
+// Ajusta estos números cuando tengan un objetivo real definido;
+// por ahora son un punto de partida razonable para conversar.
+// ------------------------------------------------------------
+const META_DIARIA = 5;   // tickets por día, por área, como referencia
+const META_SEMANAL = 15; // tickets por semana, por área, como referencia
+
+let datosGlobales = [];
+
 function colorDeArea(area) {
   return COLORES_AREA[area] || '#999999';
 }
@@ -260,6 +394,7 @@ async function cargarDatos() {
     const resp = await fetch(BASE_URL + '?action=getMetricas', { cache: 'no-store' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const datos = await resp.json();
+    datosGlobales = datos;
 
     document.getElementById('estado').style.display = 'none';
     document.getElementById('contenido').style.display = 'block';
@@ -267,6 +402,8 @@ async function cargarDatos() {
     construirFiltros(datos);
     dibujarLineChart('chartDiario', datos, 'diario', AREAS_PRINCIPALES);
     dibujarBarChart('chartSemanal', datos, 'semanal', AREAS_PRINCIPALES);
+    dibujarComparacionPaises(datos);
+    dibujarTopCategorias(datos);
     dibujarTopAnalistas(datos);
 
     document.getElementById('fechaActualizacion').textContent =
@@ -308,7 +445,7 @@ function agruparParaSerie(datos, tipo, areasFiltro) {
 // ------------------------------------------------------------
 // Dibuja una gráfica de línea con SVG puro, sin dependencias
 // ------------------------------------------------------------
-function crearSvgLineChart(fechas, series) {
+function crearSvgLineChart(fechas, series, metaValor) {
   const width = 900;
   const height = 320;
   const margin = { top: 20, right: 20, bottom: 34, left: 42 };
@@ -318,7 +455,7 @@ function crearSvgLineChart(fechas, series) {
   const todosValores = series.flatMap(function (s) {
     return s.data.filter(function (v) { return v !== null && v !== undefined; });
   });
-  const maxVal = Math.max(1, ...todosValores);
+  const maxVal = Math.max(1, metaValor || 0, ...todosValores);
   const n = fechas.length;
   const xStep = n > 1 ? innerW / (n - 1) : 0;
 
@@ -336,6 +473,14 @@ function crearSvgLineChart(fechas, series) {
       '" stroke="#E5E0F5" stroke-width="1" />';
     svg += '<text x="' + (margin.left - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#6B6B7A">' +
       Math.round(gv) + '</text>';
+  }
+
+  if (metaValor) {
+    const metaY = yPos(metaValor);
+    svg += '<line x1="' + margin.left + '" y1="' + metaY + '" x2="' + (margin.left + innerW) + '" y2="' + metaY +
+      '" stroke="#B8860B" stroke-width="1.5" stroke-dasharray="6,4" />';
+    svg += '<text x="' + (margin.left + innerW - 4) + '" y="' + (metaY - 6) +
+      '" text-anchor="end" font-size="11" fill="#B8860B" font-weight="bold">Meta: ' + metaValor + '</text>';
   }
 
   const maxEtiquetas = 7;
@@ -370,7 +515,7 @@ function crearSvgLineChart(fechas, series) {
 // ------------------------------------------------------------
 // Dibuja una gráfica de barras agrupadas con SVG puro
 // ------------------------------------------------------------
-function crearSvgBarChart(fechas, series) {
+function crearSvgBarChart(fechas, series, metaValor) {
   const width = 900;
   const height = 320;
   const margin = { top: 20, right: 20, bottom: 34, left: 42 };
@@ -380,7 +525,7 @@ function crearSvgBarChart(fechas, series) {
   const todosValores = series.flatMap(function (s) {
     return s.data.filter(function (v) { return v !== null && v !== undefined; });
   });
-  const maxVal = Math.max(1, ...todosValores);
+  const maxVal = Math.max(1, metaValor || 0, ...todosValores);
   const n = fechas.length;
   const numSeries = series.length || 1;
 
@@ -401,6 +546,14 @@ function crearSvgBarChart(fechas, series) {
       '" stroke="#E5E0F5" stroke-width="1" />';
     svg += '<text x="' + (margin.left - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="#6B6B7A">' +
       Math.round(gv) + '</text>';
+  }
+
+  if (metaValor) {
+    const metaY = yPos(metaValor);
+    svg += '<line x1="' + margin.left + '" y1="' + metaY + '" x2="' + (margin.left + innerW) + '" y2="' + metaY +
+      '" stroke="#B8860B" stroke-width="1.5" stroke-dasharray="6,4" />';
+    svg += '<text x="' + (margin.left + innerW - 4) + '" y="' + (metaY - 6) +
+      '" text-anchor="end" font-size="11" fill="#B8860B" font-weight="bold">Meta: ' + metaValor + '</text>';
   }
 
   for (let i = 0; i < n; i++) {
@@ -442,7 +595,7 @@ function dibujarLineChart(contenedorId, datos, tipo, areasFiltro) {
     return;
   }
 
-  contenedor.innerHTML = crearSvgLineChart(fechas, series) + construirLeyenda(series);
+  contenedor.innerHTML = crearSvgLineChart(fechas, series, META_DIARIA) + construirLeyenda(series);
 }
 
 function dibujarBarChart(contenedorId, datos, tipo, areasFiltro) {
@@ -454,7 +607,7 @@ function dibujarBarChart(contenedorId, datos, tipo, areasFiltro) {
     return;
   }
 
-  contenedor.innerHTML = crearSvgBarChart(fechas, series) + construirLeyenda(series);
+  contenedor.innerHTML = crearSvgBarChart(fechas, series, META_SEMANAL) + construirLeyenda(series);
 }
 
 function construirFiltros(datos) {
@@ -519,6 +672,142 @@ function dibujarTopAnalistas(datos) {
     contenedor.appendChild(div);
   });
 }
+
+// ------------------------------------------------------------
+// Comparación Colombia vs. México — corte más reciente
+// ------------------------------------------------------------
+function dibujarComparacionPaises(datos) {
+  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  const contenedor = document.getElementById('comparacionPaises');
+
+  if (diarios.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos suficientes.</div>';
+    return;
+  }
+
+  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
+  document.getElementById('fechaComparacionPaises').textContent = 'Corte del ' + fechaMasReciente;
+
+  const filaSellersCo = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites Sellers Colombia'; });
+  const filaBuyersCo = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites Buyers e Inmobiliaria Colombia'; });
+  const filaMx = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites México (todo)'; });
+
+  const totalCo = (filaSellersCo ? Number(filaSellersCo.total) : 0) + (filaBuyersCo ? Number(filaBuyersCo.total) : 0);
+  const totalMx = filaMx ? Number(filaMx.total) : 0;
+  const totalGeneral = Math.max(1, totalCo + totalMx);
+  const pctCo = Math.round((totalCo / totalGeneral) * 100);
+  const pctMx = 100 - pctCo;
+
+  contenedor.innerHTML =
+    '<div class="comparacion-stat">' +
+      '<div class="pais-label">🇨🇴 Colombia</div>' +
+      '<div class="numero" style="color:' + colorDeArea('Trámites Sellers Colombia') + ';">' + totalCo + '</div>' +
+      '<div class="etiqueta">tickets del día</div>' +
+    '</div>' +
+    '<div class="comparacion-stat">' +
+      '<div class="pais-label">🇲🇽 México</div>' +
+      '<div class="numero" style="color:' + colorDeArea('Trámites México (todo)') + ';">' + totalMx + '</div>' +
+      '<div class="etiqueta">tickets del día</div>' +
+    '</div>';
+
+  const barra = document.createElement('div');
+  barra.className = 'comparacion-bar-wrap';
+  barra.style.gridColumn = '1 / -1';
+  barra.innerHTML =
+    '<div class="segmento" style="width:' + pctCo + '%; background:' + colorDeArea('Trámites Sellers Colombia') + ';" title="Colombia: ' + pctCo + '%"></div>' +
+    '<div class="segmento" style="width:' + pctMx + '%; background:' + colorDeArea('Trámites México (todo)') + ';" title="México: ' + pctMx + '%"></div>';
+  contenedor.appendChild(barra);
+}
+
+// ------------------------------------------------------------
+// Top categorías de quejas — combinado de las 3 áreas, corte más reciente
+// ------------------------------------------------------------
+function dibujarTopCategorias(datos) {
+  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  const contenedor = document.getElementById('topCategorias');
+
+  if (diarios.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos suficientes.</div>';
+    return;
+  }
+
+  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
+  document.getElementById('fechaTopCategorias').textContent = 'Combinado de las 3 áreas — corte del ' + fechaMasReciente;
+
+  const filasDeHoy = diarios.filter(function (d) { return d.fecha_registro === fechaMasReciente; });
+  const combinado = {};
+  filasDeHoy.forEach(function (fila) {
+    const cats = fila.categorias || {};
+    Object.keys(cats).forEach(function (nombre) {
+      combinado[nombre] = (combinado[nombre] || 0) + cats[nombre];
+    });
+  });
+
+  const entradas = Object.entries(combinado).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8);
+
+  if (entradas.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Sin categorías registradas en este corte todavía (se llenará con la próxima alerta real).</div>';
+    return;
+  }
+
+  const maxCantidad = entradas[0][1];
+  contenedor.innerHTML = entradas.map(function (e) {
+    const pct = Math.max(6, Math.round((e[1] / maxCantidad) * 100));
+    return '<div class="categoria-row">' +
+      '<div class="nombre">' + e[0] + '</div>' +
+      '<div class="barra-wrap"><div class="barra" style="width:' + pct + '%;"></div></div>' +
+      '<div class="cantidad">' + e[1] + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ------------------------------------------------------------
+// Exportar todo el histórico crudo a un archivo CSV descargable
+// ------------------------------------------------------------
+function exportarHistoricoCsv() {
+  if (!datosGlobales || datosGlobales.length === 0) {
+    alert('Todavía no hay datos para exportar.');
+    return;
+  }
+
+  const encabezados = ['fecha_registro', 'tipo', 'area', 'total', 'etiqueta_periodo', 'analistas_json', 'categorias_json'];
+  const filas = datosGlobales.map(function (d) {
+    return [
+      d.fecha_registro,
+      d.tipo,
+      d.area,
+      d.total,
+      d.etiqueta_periodo || '',
+      JSON.stringify(d.analistas || {}),
+      JSON.stringify(d.categorias || {}),
+    ];
+  });
+
+  function escaparCelda(valor) {
+    const texto = String(valor === undefined || valor === null ? '' : valor);
+    if (texto.includes(',') || texto.includes('"') || texto.includes('\n')) {
+      return '"' + texto.replace(/"/g, '""') + '"';
+    }
+    return texto;
+  }
+
+  const lineas = [encabezados.join(',')].concat(
+    filas.map(function (fila) { return fila.map(escaparCelda).join(','); })
+  );
+  const csv = '\uFEFF' + lineas.join('\n'); // BOM para que Excel lea bien los acentos
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'historico_metricas_habi_' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btnExportarCsv').addEventListener('click', exportarHistoricoCsv);
 
 cargarDatos();
 </script>
