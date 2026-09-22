@@ -334,6 +334,51 @@
   .mes-row .delta.baja { background: #E3F9F1; color: #00805F; }
   .mes-row .delta.sube { background: #FDECEC; color: #C0392B; }
   .mes-row .delta.igual { background: #F0EDFB; color: var(--gray-muted); }
+
+  /* Resumen KPI con sparkline */
+  .kpi-resumen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .kpi-resumen-card {
+    background: #FAFAFF;
+    border: 1px solid #E5E0F5;
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .kpi-resumen-card .nombre-area {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--violet-dark);
+    margin-bottom: 10px;
+  }
+
+  .kpi-resumen-card .fila-numero {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .kpi-resumen-card .numero-grande {
+    font-size: 34px;
+    font-weight: 700;
+    font-family: Georgia, serif;
+    line-height: 1;
+  }
+
+  .kpi-resumen-card .etiqueta-numero {
+    font-size: 11px;
+    color: var(--gray-muted);
+    margin-bottom: 12px;
+  }
+
+  .kpi-resumen-card .sparkline-wrap {
+    margin-top: 8px;
+  }
 </style>
 </head>
 <body>
@@ -349,6 +394,12 @@
 <main>
   <div id="estado" class="estado">Cargando histórico…</div>
   <div id="contenido" style="display:none;">
+
+    <div class="card">
+      <h2>Resumen — última semana por área</h2>
+      <div class="card-sub">Lo más simple: número de la semana, tendencia, e historia reciente</div>
+      <div class="kpi-resumen-grid" id="kpiResumen"></div>
+    </div>
 
     <div class="card">
       <h2>Tendencia diaria por área</h2>
@@ -451,6 +502,7 @@ async function cargarDatos() {
 
     construirFiltros(datos);
     construirSelectorMes(datos);
+    dibujarResumenKPI(datos);
     redibujarDiario(datos);
     dibujarBarChart('chartSemanal', datos, 'semanal', AREAS_PRINCIPALES);
     dibujarComparacionMensual(datos);
@@ -484,13 +536,25 @@ function agruparParaSerie(datos, tipo, areasFiltro, mesFiltro) {
   const fechas = Array.from(new Set(Object.values(mapa).map(function (d) { return d.fecha_registro; }))).sort();
 
   const series = areasFiltro.map(function (area) {
+    const data = fechas.map(function (f) {
+      const fila = mapa[f + '|' + area];
+      return fila ? Number(fila.total) : null;
+    });
+
+    // Promedio móvil de 7 días (ignora huecos/null dentro de la ventana)
+    const promedio = data.map(function (_, i) {
+      const inicio = Math.max(0, i - 6);
+      const ventana = data.slice(inicio, i + 1).filter(function (v) { return v !== null && v !== undefined; });
+      if (ventana.length === 0) return null;
+      const suma = ventana.reduce(function (a, b) { return a + b; }, 0);
+      return suma / ventana.length;
+    });
+
     return {
       label: area,
       color: colorDeArea(area),
-      data: fechas.map(function (f) {
-        const fila = mapa[f + '|' + area];
-        return fila ? Number(fila.total) : null;
-      }),
+      data: data,
+      promedio: promedio,
     };
   }).filter(function (s) { return s.data.some(function (v) { return v !== null; }); });
 
@@ -500,7 +564,7 @@ function agruparParaSerie(datos, tipo, areasFiltro, mesFiltro) {
 // ------------------------------------------------------------
 // Dibuja una gráfica de línea con SVG puro, sin dependencias
 // ------------------------------------------------------------
-function crearSvgLineChart(fechas, series, metaValor) {
+function crearSvgLineChart(fechas, series, metaValor, usarPromedio) {
   const width = 900;
   const height = 320;
   const margin = { top: 20, right: 20, bottom: 34, left: 42 };
@@ -545,23 +609,47 @@ function crearSvgLineChart(fechas, series, metaValor) {
       '" text-anchor="middle" font-size="10" fill="#6B6B7A">' + fechas[i].slice(5) + '</text>';
   }
 
-  series.forEach(function (s) {
-    const puntos = [];
-    let pathD = '';
-    s.data.forEach(function (v, i) {
-      if (v === null || v === undefined) return;
-      const px = xPos(i), py = yPos(v);
-      pathD += (puntos.length === 0 ? 'M' : 'L') + px + ' ' + py + ' ';
-      puntos.push({ px: px, py: py, v: v, fecha: fechas[i] });
+  if (usarPromedio) {
+    // Puntos crudos tenues (muestran el detalle real sin conectar zigzag)
+    series.forEach(function (s) {
+      s.data.forEach(function (v, i) {
+        if (v === null || v === undefined) return;
+        svg += '<circle cx="' + xPos(i) + '" cy="' + yPos(v) + '" r="2.5" fill="' + s.color + '" opacity="0.3" />';
+      });
     });
-    if (pathD) {
-      svg += '<path d="' + pathD.trim() + '" fill="none" stroke="' + s.color + '" stroke-width="2.5" />';
-    }
-    puntos.forEach(function (p) {
-      svg += '<circle cx="' + p.px + '" cy="' + p.py + '" r="3.5" fill="' + s.color + '">' +
-        '<title>' + p.fecha + ' — ' + s.label + ': ' + p.v + '</title></circle>';
+    // Línea de promedio móvil de 7 días — gruesa y sólida, es la que cuenta la historia
+    series.forEach(function (s) {
+      let pathD = '';
+      let empezado = false;
+      s.promedio.forEach(function (v, i) {
+        if (v === null || v === undefined) return;
+        const px = xPos(i), py = yPos(v);
+        pathD += (empezado ? 'L' : 'M') + px + ' ' + py + ' ';
+        empezado = true;
+      });
+      if (pathD) {
+        svg += '<path d="' + pathD.trim() + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" />';
+      }
     });
-  });
+  } else {
+    series.forEach(function (s) {
+      const puntos = [];
+      let pathD = '';
+      s.data.forEach(function (v, i) {
+        if (v === null || v === undefined) return;
+        const px = xPos(i), py = yPos(v);
+        pathD += (puntos.length === 0 ? 'M' : 'L') + px + ' ' + py + ' ';
+        puntos.push({ px: px, py: py, v: v, fecha: fechas[i] });
+      });
+      if (pathD) {
+        svg += '<path d="' + pathD.trim() + '" fill="none" stroke="' + s.color + '" stroke-width="2.5" />';
+      }
+      puntos.forEach(function (p) {
+        svg += '<circle cx="' + p.px + '" cy="' + p.py + '" r="3.5" fill="' + s.color + '">' +
+          '<title>' + p.fecha + ' — ' + s.label + ': ' + p.v + '</title></circle>';
+      });
+    });
+  }
 
   svg += '</svg>';
   return svg;
@@ -655,7 +743,11 @@ function dibujarLineChart(contenedorId, datos, tipo, areasFiltro, mesFiltro) {
     return;
   }
 
-  contenedor.innerHTML = crearSvgLineChart(fechas, series, META_DIARIA) + construirLeyenda(series);
+  const nota = '<div style="font-size:11px;color:var(--gray-muted);margin-top:8px;">' +
+    'La línea gruesa es el promedio de los últimos 7 días (la tendencia real). ' +
+    'Los puntos tenues son el dato exacto de cada día individual.</div>';
+
+  contenedor.innerHTML = crearSvgLineChart(fechas, series, META_DIARIA, true) + construirLeyenda(series) + nota;
 }
 
 function dibujarBarChart(contenedorId, datos, tipo, areasFiltro) {
@@ -794,6 +886,89 @@ function dibujarTopAnalistas(datos) {
     div.appendChild(ul);
     contenedor.appendChild(div);
   });
+}
+
+// ------------------------------------------------------------
+// Dibuja una mini-gráfica de línea (sparkline) sin ejes ni etiquetas
+// ------------------------------------------------------------
+function crearSparklineSvg(valores, color) {
+  const width = 200;
+  const height = 44;
+  const pad = 4;
+
+  if (valores.length === 0) {
+    return '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '"></svg>';
+  }
+
+  const maxVal = Math.max(1, ...valores);
+  const minVal = Math.min(...valores);
+  const rango = Math.max(1, maxVal - minVal);
+  const n = valores.length;
+  const xStep = n > 1 ? (width - pad * 2) / (n - 1) : 0;
+
+  function xPos(i) { return pad + i * xStep; }
+  function yPos(v) { return height - pad - ((v - minVal) / rango) * (height - pad * 2); }
+
+  let pathD = '';
+  valores.forEach(function (v, i) {
+    pathD += (i === 0 ? 'M' : 'L') + xPos(i) + ' ' + yPos(v) + ' ';
+  });
+
+  const ultimoX = xPos(n - 1);
+  const ultimoY = yPos(valores[n - 1]);
+
+  return '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="' + pathD.trim() + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />' +
+    '<circle cx="' + ultimoX + '" cy="' + ultimoY + '" r="3" fill="' + color + '" />' +
+    '</svg>';
+}
+
+// ------------------------------------------------------------
+// Tarjetas de resumen: última semana + tendencia + sparkline, por área
+// ------------------------------------------------------------
+function dibujarResumenKPI(datos) {
+  const semanales = datos.filter(function (d) { return d.tipo === 'semanal' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  const contenedor = document.getElementById('kpiResumen');
+
+  if (semanales.length === 0) {
+    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos semanales suficientes.</div>';
+    return;
+  }
+
+  contenedor.innerHTML = AREAS_PRINCIPALES.map(function (area) {
+    const filasArea = semanales
+      .filter(function (d) { return d.area === area; })
+      .sort(function (a, b) { return a.fecha_registro < b.fecha_registro ? -1 : 1; });
+
+    if (filasArea.length === 0) {
+      return '<div class="kpi-resumen-card"><div class="nombre-area">' + area + '</div>' +
+        '<div class="sin-datos" style="padding:10px 0;">Sin datos todavía.</div></div>';
+    }
+
+    const ultima = filasArea[filasArea.length - 1];
+    const penultima = filasArea.length > 1 ? filasArea[filasArea.length - 2] : null;
+
+    let deltaHtml = '';
+    if (penultima) {
+      const delta = Number(ultima.total) - Number(penultima.total);
+      const pct = Number(penultima.total) > 0 ? Math.round((delta / Number(penultima.total)) * 100) : null;
+      const claseDelta = delta < 0 ? 'baja' : (delta > 0 ? 'sube' : 'igual');
+      const flecha = delta < 0 ? '↓' : (delta > 0 ? '↑' : '→');
+      const textoPct = pct !== null ? ' (' + (pct > 0 ? '+' + pct : pct) + '%)' : '';
+      deltaHtml = '<span class="delta ' + claseDelta + '">' + flecha + ' ' + Math.abs(delta) + textoPct + ' vs. semana pasada</span>';
+    }
+
+    const ultimasN = filasArea.slice(-10).map(function (f) { return Number(f.total); });
+    const color = colorDeArea(area);
+
+    return '<div class="kpi-resumen-card">' +
+      '<div class="nombre-area">' + area + '</div>' +
+      '<div class="fila-numero"><span class="numero-grande" style="color:' + color + ';">' + ultima.total + '</span></div>' +
+      '<div class="etiqueta-numero">tickets — semana del ' + ultima.fecha_registro + '</div>' +
+      deltaHtml +
+      '<div class="sparkline-wrap">' + crearSparklineSvg(ultimasN, color) + '</div>' +
+    '</div>';
+  }).join('');
 }
 
 // ------------------------------------------------------------
