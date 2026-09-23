@@ -461,9 +461,9 @@
       <div class="card-sub" id="subMetas">Última semana completa vs. meta del trimestre</div>
       <div id="metasPorArea"></div>
       <div class="metas-nota">
-        Línea base: mediana semanal del 5 de enero al 20 de septiembre de 2026.
-        Meta Q4 2026 = línea base −15%; meta Q1 2027 = línea base −30%.
-        México Sellers, Buyers e Inmobiliaria se evalúan sobre las últimas 4 semanas por su bajo volumen semanal.
+        Alcance: solo áreas Trámites Sellers, Trámites Buyers y Trámites Inmobiliaria (Property, Entregas y Postventa, Captación, Publicación y demás gestiones quedan fuera).
+        Línea base: mediana semanal del 5 de enero al 20 de septiembre de 2026. Meta Q4 2026 = línea base −15%; meta Q1 2027 = línea base −30%.
+        México Sellers se evalúa sobre las últimas 4 semanas; México Buyers e Inmobiliaria no llevan meta por su bajo volumen.
       </div>
     </div>
 
@@ -581,13 +581,16 @@ const AREAS_GRUPO_CHAT = ['Trámites Sellers Colombia', 'Trámites Buyers e Inmo
 // q4 = base −15% (vigente hasta 31-dic-2026); q1 = base −30% (desde 1-ene-2027)
 // ventana = número de semanas completas que se suman para evaluar
 // ------------------------------------------------------------
+// Recalculadas con el alcance correcto: solo áreas "Trámites Sellers /
+// Buyers / Inmobiliaria" (validado contra BigQuery, 23-sep-2026).
+// q4/q1 = null -> sin semáforo: volumen demasiado bajo, seguimiento caso a caso.
 const METAS = {
-  'Trámites Sellers Colombia': { ventana: 1, base: 35,   q4: 30, q1: 25 },
-  'Colombia - Buyers':         { ventana: 1, base: 25,   q4: 21, q1: 18 },
-  'Colombia - Inmobiliaria':   { ventana: 1, base: 21,   q4: 18, q1: 15 },
-  'México - Sellers':          { ventana: 4, base: 19.5, q4: 17, q1: 14 },
-  'México - Buyers':           { ventana: 4, base: 13,   q4: 11, q1: 9 },
-  'México - Inmobiliaria':     { ventana: 4, base: 18.5, q4: 16, q1: 13 },
+  'Trámites Sellers Colombia': { ventana: 1, base: 22,   q4: 19,   q1: 15 },
+  'Colombia - Buyers':         { ventana: 1, base: 15,   q4: 13,   q1: 11 },
+  'Colombia - Inmobiliaria':   { ventana: 1, base: 11,   q4: 9,    q1: 8 },
+  'México - Sellers':          { ventana: 4, base: 15.5, q4: 13,   q1: 11 },
+  'México - Buyers':           { ventana: 4, base: 3.5,  q4: null, q1: null },
+  'México - Inmobiliaria':     { ventana: 4, base: 4,    q4: null, q1: null },
 };
 const FECHA_CAMBIO_META = '2027-01-01';
 
@@ -957,6 +960,17 @@ function dibujarMetas(datos) {
       if (valor === null) {
         return '<div class="meta-card"><div class="nombre-area">' + area + '</div>' +
           '<div class="detalle">Sin datos suficientes para el corte.</div></div>';
+      }
+      const textoVentanaSeg = 'tickets en las últimas 4 semanas (' + fechaCorta(sumarDias(lunesFin, -21)) + ' – ' + fechaCorta(domingoFin) + ')';
+      if (meta.q4 === null) {
+        return '<div class="meta-card">' +
+          '<div class="nombre-area">' + area + '</div>' +
+          '<div class="fila"><span class="valor" style="color:' + colorDeArea(area) + ';">' + valor + '</span>' +
+          '<span class="vs">sin meta</span></div>' +
+          '<div class="detalle">' + textoVentanaSeg + '</div>' +
+          '<span class="estado-pill" style="background:#F0EDFB;color:var(--gray-muted);">Seguimiento caso a caso</span>' +
+          '<div class="detalle">Volumen demasiado bajo para un semáforo (línea base: ' + meta.base + ' cada 4 semanas). Cada queja se revisa individualmente.</div>' +
+        '</div>';
       }
       const metaActual = metaVigente(meta, domingoFin);
       const enMeta = valor <= metaActual;
