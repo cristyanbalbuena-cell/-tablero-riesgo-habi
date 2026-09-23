@@ -389,6 +389,12 @@
   .kpi-mini .v { font-size: 26px; font-weight: 700; font-family: Georgia, serif; margin: 4px 0; }
   .kpi-mini .s { font-size: 11px; color: var(--gray-muted); }
   .subtitulo-tabla { font-size: 13px; font-weight: 700; color: var(--violet-dark); margin: 6px 0 8px; }
+  .tabla-alta { max-height: 460px; overflow: auto; border: 1px solid #F0EDFB; border-radius: 8px; }
+  .tabla-alta thead th { position: sticky; top: 0; background: white; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .chip { border: 1px solid #E5E0F5; background: white; border-radius: 20px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .chip.activo { background: var(--violet); color: white; border-color: var(--violet); }
+  .btn-sec { background: white; color: var(--violet); border: 1px solid var(--violet); border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
   /* Resumen KPI con sparkline */
   .kpi-resumen-grid {
@@ -508,6 +514,16 @@
       <div class="card-sub" id="subSinAsignar">Últimas 4 semanas completas</div>
       <div id="sinAsignar"></div>
       <div class="metas-nota">Mientras una queja no tenga colaborador, no entra en ningún ranking ni en el desglose del mensaje de Chat. Este porcentaje mide qué tanto del volumen real queda fuera del accountability individual.</div>
+    </div>
+
+    <div class="card">
+      <h2>Tickets por asignar</h2>
+      <div class="card-sub" id="subPorAsignar">Cargando tickets…</div>
+      <div id="porAsignar"></div>
+      <div class="metas-nota">
+        Cómo asignarlos: en el tablero principal, buscar el ID del ticket en "Buscar por NID, Colaborador, ID de ticket", abrirlo y escribir el analista en "¿Colaborador asignado incorrectamente?".
+        La asignación se guarda en la pestaña Correcciones y desaparece de esta lista al recargar. Las alertas y el histórico la toman después de volver a correr el backfill.
+      </div>
     </div>
 
     <div class="card">
@@ -1497,8 +1513,9 @@ function dibujarSinAsignar(datos) {
 // ------------------------------------------------------------
 function clasificarTicket(t) {
   const empresa = String(t.empresa || '').toLowerCase();
-  const area = String(t.area_responsable || '').toLowerCase();
+  const area = String(t.area_responsable || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   if (empresa.indexOf('brokers') !== -1) return null;
+  if (area.indexOf('tramites') === -1) return null; // solo áreas de Trámites, igual que el tablero principal
   const esCo = empresa.indexOf('colombia') !== -1;
   const esMx = empresa.indexOf('méxico') !== -1 || empresa.indexOf('mexico') !== -1;
   if (!esCo && !esMx) return null;
@@ -1517,17 +1534,130 @@ function nidValido(nid) {
   return invalidos.indexOf(n.toLowerCase()) === -1 ? n : null;
 }
 
+// Carga los tickets individuales y las correcciones manuales del tablero,
+// aplica las correcciones y alimenta Reincidencia y Tickets por asignar
 async function cargarReincidencia() {
-  const sub = document.getElementById('subReincidencia');
+  let tickets;
   try {
     const resp = await fetch(BASE_URL + '?action=getTickets', { cache: 'no-store' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const tickets = await resp.json();
-    dibujarReincidencia(tickets);
+    tickets = await resp.json();
   } catch (err) {
     console.error(err);
-    sub.textContent = 'No se pudieron cargar los tickets para calcular la reincidencia. Detalle: ' + err.message;
+    const msg = 'No se pudieron cargar los tickets. Detalle: ' + err.message;
+    document.getElementById('subReincidencia').textContent = msg;
+    document.getElementById('subPorAsignar').textContent = msg;
+    return;
   }
+
+  let correcciones = {};
+  try {
+    const r = await fetch(BASE_URL + '?action=getCorrections', { cache: 'no-store' });
+    if (r.ok) correcciones = await r.json();
+  } catch (err) {
+    console.warn('No se pudieron cargar las correcciones:', err);
+  }
+
+  tickets.forEach(function (t) {
+    const c = correcciones[String(t.interaccion_id)];
+    if (!c) return;
+    if (c.colaborador) t.nombre_colaborador = c.colaborador;
+    if (c.area) t.area_responsable = c.area;
+  });
+
+  dibujarReincidencia(tickets);
+  dibujarPorAsignar(tickets);
+}
+
+// ------------------------------------------------------------
+// 5. TICKETS POR ASIGNAR — sin colaborador desde el 1 de agosto
+// ------------------------------------------------------------
+const FECHA_INICIO_ASIGNACION = '2026-08-01';
+let porAsignarLista = [];
+let porAsignarFiltro = 'todas';
+
+function colaboradorVacio(nombre) {
+  const n = String(nombre === undefined || nombre === null ? '' : nombre).trim().toLowerCase();
+  return n === '' || n === '-' || n === 'na' || n === 'n/a' || n === 'null' || n.indexOf('sin ') === 0;
+}
+
+function dibujarPorAsignar(tickets) {
+  porAsignarLista = tickets.map(function (t) {
+    const area = clasificarTicket(t);
+    const fecha = String(t.fecha_creacion || '').split('T')[0].split(' ')[0];
+    if (!area || fecha < FECHA_INICIO_ASIGNACION || !colaboradorVacio(t.nombre_colaborador)) return null;
+    return {
+      id: String(t.interaccion_id || ''),
+      fecha: fecha,
+      nid: nidValido(t.nid) || '—',
+      area: area,
+      categoria: t.categoria || 'Sin categoría',
+      subcategoria: t.subcategoria || '',
+      equipo: t.equipo_solucion || '',
+      resumen: t.segundo_resumen_ia || t.primer_resumen_ia || '',
+    };
+  }).filter(Boolean).sort(function (a, b) { return a.fecha < b.fecha ? 1 : -1; });
+
+  document.getElementById('subPorAsignar').textContent =
+    porAsignarLista.length + ' quejas sin colaborador desde el ' + fechaCorta(FECHA_INICIO_ASIGNACION) +
+    ' (ya descontadas las que se asignaron en el tablero)';
+  renderPorAsignar();
+}
+
+function renderPorAsignar() {
+  const cont = document.getElementById('porAsignar');
+  if (porAsignarLista.length === 0) {
+    cont.innerHTML = '<div class="sin-datos">No hay tickets pendientes de asignar desde el ' + fechaCorta(FECHA_INICIO_ASIGNACION) + '.</div>';
+    return;
+  }
+
+  const conteo = {};
+  porAsignarLista.forEach(function (x) { conteo[x.area] = (conteo[x.area] || 0) + 1; });
+  const chips = '<div class="chips"><button class="chip ' + (porAsignarFiltro === 'todas' ? 'activo' : '') + '" data-area="todas">Todas (' + porAsignarLista.length + ')</button>' +
+    AREAS_PRINCIPALES.filter(function (a) { return conteo[a]; }).map(function (a) {
+      return '<button class="chip ' + (porAsignarFiltro === a ? 'activo' : '') + '" data-area="' + esc(a) + '">' + NOMBRE_CORTO[a] + ' (' + conteo[a] + ')</button>';
+    }).join('') + '</div>';
+
+  const visibles = porAsignarLista.filter(function (x) { return porAsignarFiltro === 'todas' || x.area === porAsignarFiltro; });
+
+  const tabla = '<div class="tabla-alta"><table class="tabla"><thead><tr>' +
+      '<th>ID ticket</th><th>Fecha</th><th>NID</th><th>Área</th><th>Categoría</th><th>Equipo solución</th><th>Resumen</th>' +
+    '</tr></thead><tbody>' +
+    visibles.map(function (x) {
+      const corto = x.resumen.length > 110 ? x.resumen.slice(0, 110) + '…' : x.resumen;
+      return '<tr><td style="font-weight:700;white-space:nowrap;">' + esc(x.id) + '</td>' +
+        '<td style="white-space:nowrap;">' + fechaCorta(x.fecha) + '</td><td>' + esc(x.nid) + '</td>' +
+        '<td style="white-space:nowrap;">' + NOMBRE_CORTO[x.area] + '</td><td>' + esc(x.categoria) + '</td>' +
+        '<td>' + esc(x.equipo) + '</td><td style="font-size:12px;" title="' + esc(x.resumen) + '">' + esc(corto) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+
+  cont.innerHTML = chips +
+    '<div style="margin-bottom:10px;"><button class="btn-sec" id="btnCsvPorAsignar">⬇️ Descargar esta lista (CSV)</button></div>' + tabla;
+
+  Array.from(cont.querySelectorAll('.chip')).forEach(function (b) {
+    b.addEventListener('click', function () { porAsignarFiltro = b.dataset.area; renderPorAsignar(); });
+  });
+  document.getElementById('btnCsvPorAsignar').addEventListener('click', function () { exportarPorAsignarCsv(visibles); });
+}
+
+function exportarPorAsignarCsv(lista) {
+  const enc = ['interaccion_id', 'fecha_creacion', 'nid', 'area', 'categoria', 'subcategoria', 'equipo_solucion', 'resumen_ia', 'colaborador_a_asignar'];
+  function celda(v) {
+    const t = String(v === undefined || v === null ? '' : v);
+    return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  }
+  const lineas = [enc.join(',')].concat(lista.map(function (x) {
+    return [x.id, x.fecha, x.nid, x.area, x.categoria, x.subcategoria, x.equipo, x.resumen, ''].map(celda).join(',');
+  }));
+  const blob = new Blob(['\uFEFF' + lineas.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tickets_por_asignar_' + hoyLocal() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function calcularReincidencia(tickets, desde, hasta) {
