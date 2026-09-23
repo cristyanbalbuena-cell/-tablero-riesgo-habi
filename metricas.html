@@ -352,6 +352,44 @@
   .meta-card .detalle { font-size: 11px; color: var(--gray-muted); line-height: 1.5; }
   .metas-nota { font-size: 11px; color: var(--gray-muted); margin-top: 6px; line-height: 1.5; }
 
+  /* Avance vs. línea base */
+  .avance-paises { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .avance-pais { background: #FAFAFF; border: 1px solid #E5E0F5; border-radius: 12px; padding: 16px; text-align: center; }
+  .avance-pais .pais { font-size: 13px; font-weight: 700; color: var(--violet-dark); }
+  .avance-pais .pct { font-size: 34px; font-weight: 700; font-family: Georgia, serif; margin: 6px 0 2px; }
+  .avance-pais .det { font-size: 11px; color: var(--gray-muted); }
+  .verde-txt { color: #00805F; }
+  .rojo-txt { color: #C0392B; }
+  .fila-avance { display: grid; grid-template-columns: 200px 1fr 70px; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid #F0EDFB; font-size: 13px; }
+  .fila-avance:last-child { border-bottom: none; }
+  .barra-avance { position: relative; height: 12px; background: #F0EDFB; border-radius: 6px; }
+  .barra-avance .base { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text-dark); }
+  .barra-avance .real { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 6px; }
+  .fila-avance .num { text-align: right; font-weight: 700; }
+
+  /* Matriz categoría × área */
+  .tabla-scroll { overflow-x: auto; }
+  .matriz { border-collapse: collapse; width: 100%; font-size: 12px; min-width: 760px; }
+  .matriz th { text-align: center; font-weight: 700; color: var(--violet-dark); padding: 8px 6px; border-bottom: 2px solid #E5E0F5; }
+  .matriz th:first-child { text-align: left; }
+  .matriz td { text-align: center; padding: 7px 6px; border-bottom: 1px solid #F0EDFB; }
+  .matriz td:first-child { text-align: left; color: var(--text-dark); }
+  .matriz .n { font-weight: 700; font-size: 13px; }
+  .matriz .d { font-size: 10px; }
+  .matriz tr.total td { font-weight: 700; border-top: 2px solid #E5E0F5; }
+
+  /* Tablas simples */
+  .tabla { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--gray-muted); padding: 6px 8px; border-bottom: 2px solid #E5E0F5; }
+  .tabla td { padding: 8px; border-bottom: 1px solid #F0EDFB; vertical-align: middle; }
+  .tabla td.num, .tabla th.num { text-align: right; }
+  .kpi-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi-mini { background: #FAFAFF; border: 1px solid #E5E0F5; border-radius: 12px; padding: 12px 14px; }
+  .kpi-mini .t { font-size: 12px; font-weight: 700; color: var(--violet-dark); }
+  .kpi-mini .v { font-size: 26px; font-weight: 700; font-family: Georgia, serif; margin: 4px 0; }
+  .kpi-mini .s { font-size: 11px; color: var(--gray-muted); }
+  .subtitulo-tabla { font-size: 13px; font-weight: 700; color: var(--violet-dark); margin: 6px 0 8px; }
+
   /* Resumen KPI con sparkline */
   .kpi-resumen-grid {
     display: grid;
@@ -453,21 +491,30 @@
     </div>
 
     <div class="card">
-      <h2>Colombia vs. México</h2>
-      <div class="card-sub" id="fechaComparacionPaises">Corte más reciente</div>
-      <div class="comparacion-grid" id="comparacionPaises"></div>
+      <h2>Avance vs. línea base</h2>
+      <div class="card-sub" id="subAvance">Últimas 4 semanas completas vs. línea base de cada área</div>
+      <div id="avanceBase"></div>
     </div>
 
     <div class="card">
-      <h2>Top categorías de quejas</h2>
-      <div class="card-sub" id="fechaTopCategorias">Combinado de las 6 áreas — corte más reciente</div>
-      <div class="categorias-list" id="topCategorias"></div>
+      <h2>¿Dónde está el problema? Categoría × área</h2>
+      <div class="card-sub" id="subMatriz">Últimas 4 semanas completas</div>
+      <div class="tabla-scroll" id="matrizCategorias"></div>
+      <div class="metas-nota">Número = quejas en las últimas 4 semanas. Debajo, la variación contra las 4 semanas anteriores (verde = bajó, rojo = subió). El color de fondo indica el peso de la categoría dentro de su área.</div>
     </div>
 
     <div class="card">
-      <h2>Top colaboradores — corte más reciente</h2>
-      <div class="card-sub" id="fechaTopAnalistas"></div>
-      <div class="top-analistas" id="topAnalistas"></div>
+      <h2>Quejas sin colaborador asignado</h2>
+      <div class="card-sub" id="subSinAsignar">Últimas 4 semanas completas</div>
+      <div id="sinAsignar"></div>
+      <div class="metas-nota">Mientras una queja no tenga colaborador, no entra en ningún ranking ni en el desglose del mensaje de Chat. Este porcentaje mide qué tanto del volumen real queda fuera del accountability individual.</div>
+    </div>
+
+    <div class="card">
+      <h2>Reincidencia por inmueble (NID)</h2>
+      <div class="card-sub" id="subReincidencia">Cargando tickets…</div>
+      <div id="reincidencia"></div>
+      <div class="metas-nota">Reincidente = un mismo NID con 2 o más quejas en los últimos 30 días dentro de la misma área. El NID identifica al inmueble, no a la persona. Como se cuenta por área, si el seller y el buyer del mismo inmueble se quejan una vez cada uno, no es reincidencia: cada queja queda en su área.</div>
     </div>
 
     <div class="card" style="text-align:center;">
@@ -557,9 +604,10 @@ async function cargarDatos() {
     redibujarDiario(datos);
     redibujarSemanal(datos);
     dibujarComparacionMensual(datos);
-    dibujarComparacionPaises(datos);
-    dibujarTopCategorias(datos);
-    dibujarTopAnalistas(datos);
+    dibujarAvanceBase(datos);
+    dibujarMatrizCategorias(datos);
+    dibujarSinAsignar(datos);
+    cargarReincidencia();
 
     document.getElementById('fechaActualizacion').textContent =
       'Datos actualizados al cargar esta página: ' + new Date().toLocaleString('es-MX');
@@ -1034,46 +1082,6 @@ function redibujarDiario(datos) {
   }
 }
 
-function dibujarTopAnalistas(datos) {
-  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
-  if (diarios.length === 0) {
-    document.getElementById('topAnalistas').textContent = 'Aún no hay datos suficientes.';
-    return;
-  }
-
-  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
-  document.getElementById('fechaTopAnalistas').textContent = 'Corte del ' + fechaMasReciente;
-
-  const contenedor = document.getElementById('topAnalistas');
-  contenedor.innerHTML = '';
-
-  AREAS_PRINCIPALES.forEach(function (area) {
-    const fila = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === area; });
-    const div = document.createElement('div');
-    div.className = 'grupo';
-
-    const h3 = document.createElement('h3');
-    h3.textContent = area;
-    div.appendChild(h3);
-
-    const ul = document.createElement('ul');
-    if (fila && fila.analistas && Object.keys(fila.analistas).length > 0) {
-      const entradas = Object.entries(fila.analistas).sort(function (a, b) { return b[1] - a[1]; });
-      entradas.forEach(function (e) {
-        const li = document.createElement('li');
-        li.innerHTML = '<span>' + e[0] + '</span><span class="cantidad">' + e[1] + '</span>';
-        ul.appendChild(li);
-      });
-    } else {
-      const li = document.createElement('li');
-      li.textContent = 'Sin datos para este corte.';
-      ul.appendChild(li);
-    }
-    div.appendChild(ul);
-    contenedor.appendChild(div);
-  });
-}
-
 // ------------------------------------------------------------
 // Dibuja una mini-gráfica de línea (sparkline) sin ejes ni etiquetas
 // ------------------------------------------------------------
@@ -1225,92 +1233,386 @@ function dibujarComparacionMensual(datos) {
 }
 
 // ------------------------------------------------------------
-// Comparación Colombia vs. México — corte más reciente
+// Utilidades compartidas por las 4 tarjetas de análisis
 // ------------------------------------------------------------
-function dibujarComparacionPaises(datos) {
-  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
-  const contenedor = document.getElementById('comparacionPaises');
+function esc(texto) {
+  return String(texto === undefined || texto === null ? '' : texto)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
-  if (diarios.length === 0) {
-    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos suficientes.</div>';
-    return;
+// Ventana de 4 semanas completas (lunes a domingo) y las 4 anteriores
+function ventanas4Semanas() {
+  const lunesFin = lunesUltimaSemanaCompleta();
+  const inicio = sumarDias(lunesFin, -21);
+  const fin = sumarDias(lunesFin, 6);
+  return {
+    inicio: inicio,
+    fin: fin,
+    prevInicio: sumarDias(inicio, -28),
+    prevFin: sumarDias(inicio, -1),
+    texto: fechaCorta(inicio) + ' – ' + fechaCorta(fin),
+  };
+}
+
+function filasDiariasEnRango(datos, area, desde, hasta) {
+  return datos.filter(function (d) {
+    return d.tipo === 'diario' && d.area === area && d.fecha_registro >= desde && d.fecha_registro <= hasta;
+  });
+}
+
+function sumarTotal(filas) {
+  return filas.reduce(function (acc, d) { return acc + Number(d.total); }, 0);
+}
+
+function sumarMapas(filas, campo) {
+  const m = {};
+  filas.forEach(function (d) {
+    const mapa = d[campo] || {};
+    Object.keys(mapa).forEach(function (k) { m[k] = (m[k] || 0) + Number(mapa[k]); });
+  });
+  return m;
+}
+
+function formatoPct(valor, conSigno) {
+  const r = Math.round(valor);
+  return (conSigno && r > 0 ? '+' : '') + r + '%';
+}
+
+function deltaHtml(delta, sufijo) {
+  if (delta === 0) return '<span style="color:var(--gray-muted);">=</span>';
+  const clase = delta < 0 ? 'verde-txt' : 'rojo-txt';
+  const flecha = delta < 0 ? '▼' : '▲';
+  return '<span class="' + clase + '">' + flecha + ' ' + (delta > 0 ? '+' : '') + delta + (sufijo || '') + '</span>';
+}
+
+const NOMBRE_CORTO = {
+  'Trámites Sellers Colombia': 'CO Sellers',
+  'Colombia - Buyers': 'CO Buyers',
+  'Colombia - Inmobiliaria': 'CO Inmobiliaria',
+  'México - Sellers': 'MX Sellers',
+  'México - Buyers': 'MX Buyers',
+  'México - Inmobiliaria': 'MX Inmobiliaria',
+};
+
+// ------------------------------------------------------------
+// 1. AVANCE VS. LÍNEA BASE — últimas 4 semanas completas
+// Verde = por debajo de la línea base; rojo = por encima.
+// ------------------------------------------------------------
+function dibujarAvanceBase(datos) {
+  const v = ventanas4Semanas();
+  document.getElementById('subAvance').textContent =
+    'Quejas del ' + v.texto + ' vs. la línea base de cada área para 4 semanas. Verde = por debajo de la base; rojo = por encima.';
+
+  function baseCuatroSemanas(area) {
+    const m = METAS[area];
+    return m.ventana === 1 ? m.base * 4 : m.base;
   }
 
-  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
-  document.getElementById('fechaComparacionPaises').textContent = 'Corte del ' + fechaMasReciente;
+  const filas = AREAS_PRINCIPALES.map(function (area) {
+    const actual = sumarTotal(filasDiariasEnRango(datos, area, v.inicio, v.fin));
+    const base = baseCuatroSemanas(area);
+    return { area: area, actual: actual, base: base, pct: base > 0 ? (actual - base) / base * 100 : 0 };
+  });
 
-  function totalPais(areas) {
-    return diarios
-      .filter(function (d) { return d.fecha_registro === fechaMasReciente && areas.indexOf(d.area) !== -1; })
-      .reduce(function (acc, d) { return acc + Number(d.total); }, 0);
-  }
-  const totalCo = totalPais(AREAS_COLOMBIA);
-  const totalMx = totalPais(AREAS_MEXICO);
-  const totalGeneral = Math.max(1, totalCo + totalMx);
-  const pctCo = Math.round((totalCo / totalGeneral) * 100);
-  const pctMx = 100 - pctCo;
-
-  contenedor.innerHTML =
-    '<div class="comparacion-stat">' +
-      '<div class="pais-label">🇨🇴 Colombia</div>' +
-      '<div class="numero" style="color:' + colorDeArea('Trámites Sellers Colombia') + ';">' + totalCo + '</div>' +
-      '<div class="etiqueta">tickets del día</div>' +
-    '</div>' +
-    '<div class="comparacion-stat">' +
-      '<div class="pais-label">🇲🇽 México</div>' +
-      '<div class="numero" style="color:' + colorDeArea('Trámites México (todo)') + ';">' + totalMx + '</div>' +
-      '<div class="etiqueta">tickets del día</div>' +
+  function tarjetaPais(nombre, areas) {
+    const f = filas.filter(function (x) { return areas.indexOf(x.area) !== -1; });
+    const actual = f.reduce(function (a, x) { return a + x.actual; }, 0);
+    const base = f.reduce(function (a, x) { return a + x.base; }, 0);
+    const pct = base > 0 ? (actual - base) / base * 100 : 0;
+    return '<div class="avance-pais">' +
+      '<div class="pais">' + nombre + '</div>' +
+      '<div class="pct ' + (pct <= 0 ? 'verde-txt' : 'rojo-txt') + '">' + formatoPct(pct, true) + '</div>' +
+      '<div class="det">' + actual + ' quejas vs. base de ' + Math.round(base) + ' en 4 semanas<br>Meta Q4: −15% · Meta Q1: −30%</div>' +
     '</div>';
+  }
 
-  const barra = document.createElement('div');
-  barra.className = 'comparacion-bar-wrap';
-  barra.style.gridColumn = '1 / -1';
-  barra.innerHTML =
-    '<div class="segmento" style="width:' + pctCo + '%; background:' + colorDeArea('Trámites Sellers Colombia') + ';" title="Colombia: ' + pctCo + '%"></div>' +
-    '<div class="segmento" style="width:' + pctMx + '%; background:' + colorDeArea('Trámites México (todo)') + ';" title="México: ' + pctMx + '%"></div>';
-  contenedor.appendChild(barra);
+  const filasHtml = filas.map(function (x) {
+    const escala = x.base * 1.6;
+    const ancho = Math.min(100, (x.actual / escala) * 100);
+    const posBase = (x.base / escala) * 100;
+    const color = x.pct <= 0 ? '#00A884' : '#D64545';
+    return '<div class="fila-avance">' +
+      '<div>' + esc(x.area) + '<br><span style="font-size:11px;color:var(--gray-muted);">' + x.actual + ' vs. base ' + x.base + '</span></div>' +
+      '<div class="barra-avance"><div class="real" style="width:' + ancho + '%;background:' + color + ';"></div>' +
+        '<div class="base" style="left:' + posBase + '%;" title="Línea base"></div></div>' +
+      '<div class="num ' + (x.pct <= 0 ? 'verde-txt' : 'rojo-txt') + '">' + formatoPct(x.pct, true) + '</div>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('avanceBase').innerHTML =
+    '<div class="avance-paises">' + tarjetaPais('Colombia', AREAS_COLOMBIA) + tarjetaPais('México', AREAS_MEXICO) + '</div>' +
+    filasHtml +
+    '<div class="metas-nota">La línea negra de cada barra es la línea base; la barra es el volumen real de las últimas 4 semanas.</div>';
 }
 
 // ------------------------------------------------------------
-// Top categorías de quejas — combinado de las 3 áreas, corte más reciente
+// 2. MATRIZ CATEGORÍA × ÁREA — últimas 4 semanas vs. 4 anteriores
 // ------------------------------------------------------------
-function dibujarTopCategorias(datos) {
-  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
-  const contenedor = document.getElementById('topCategorias');
+function dibujarMatrizCategorias(datos) {
+  const v = ventanas4Semanas();
+  document.getElementById('subMatriz').textContent =
+    'Quejas del ' + v.texto + ' por categoría y área, con variación vs. las 4 semanas anteriores';
 
-  if (diarios.length === 0) {
-    contenedor.innerHTML = '<div class="sin-datos">Todavía no hay datos suficientes.</div>';
-    return;
-  }
-
-  const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
-  document.getElementById('fechaTopCategorias').textContent = 'Combinado de las 6 áreas — corte del ' + fechaMasReciente;
-
-  const filasDeHoy = diarios.filter(function (d) { return d.fecha_registro === fechaMasReciente; });
-  const combinado = {};
-  filasDeHoy.forEach(function (fila) {
-    const cats = fila.categorias || {};
-    Object.keys(cats).forEach(function (nombre) {
-      combinado[nombre] = (combinado[nombre] || 0) + cats[nombre];
-    });
+  const actual = {}, previo = {}, totalArea = {};
+  AREAS_PRINCIPALES.forEach(function (area) {
+    actual[area] = sumarMapas(filasDiariasEnRango(datos, area, v.inicio, v.fin), 'categorias');
+    previo[area] = sumarMapas(filasDiariasEnRango(datos, area, v.prevInicio, v.prevFin), 'categorias');
+    totalArea[area] = Object.values(actual[area]).reduce(function (a, b) { return a + b; }, 0);
   });
 
-  const entradas = Object.entries(combinado).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8);
-
-  if (entradas.length === 0) {
-    contenedor.innerHTML = '<div class="sin-datos">Sin categorías registradas en este corte todavía (se llenará con la próxima alerta real).</div>';
+  const totalCategoria = {};
+  AREAS_PRINCIPALES.forEach(function (area) {
+    Object.keys(actual[area]).forEach(function (c) { totalCategoria[c] = (totalCategoria[c] || 0) + actual[area][c]; });
+  });
+  const categorias = Object.keys(totalCategoria).sort(function (a, b) { return totalCategoria[b] - totalCategoria[a]; });
+  if (categorias.length === 0) {
+    document.getElementById('matrizCategorias').innerHTML = '<div class="sin-datos">Sin quejas en las últimas 4 semanas.</div>';
     return;
   }
+  const top = categorias.slice(0, 8);
+  const resto = categorias.slice(8);
 
-  const maxCantidad = entradas[0][1];
-  contenedor.innerHTML = entradas.map(function (e) {
-    const pct = Math.max(6, Math.round((e[1] / maxCantidad) * 100));
-    return '<div class="categoria-row">' +
-      '<div class="nombre">' + e[0] + '</div>' +
-      '<div class="barra-wrap"><div class="barra" style="width:' + pct + '%;"></div></div>' +
-      '<div class="cantidad">' + e[1] + '</div>' +
+  function valor(mapa, cats) {
+    return cats.reduce(function (a, c) { return a + (mapa[c] || 0); }, 0);
+  }
+
+  function celda(area, cats) {
+    const n = valor(actual[area], cats);
+    const p = valor(previo[area], cats);
+    if (n === 0 && p === 0) return '<td style="color:#C8C3D8;">–</td>';
+    const peso = totalArea[area] > 0 ? n / totalArea[area] : 0;
+    const fondo = 'rgba(106, 6, 250, ' + Math.min(0.35, peso * 0.5).toFixed(2) + ')';
+    const texto = 'var(--text-dark)';
+    return '<td style="background:' + fondo + ';"><div class="n" style="color:' + texto + ';">' + n + '</div>' +
+      '<div class="d" style="background:white;border-radius:8px;display:inline-block;padding:0 5px;margin-top:2px;">' + deltaHtml(n - p) + '</div></td>';
+  }
+
+  let html = '<table class="matriz"><thead><tr><th>Categoría</th>' +
+    AREAS_PRINCIPALES.map(function (a) { return '<th>' + NOMBRE_CORTO[a] + '</th>'; }).join('') +
+    '<th>Total</th></tr></thead><tbody>';
+
+  function filaTotalCategoria(cats) {
+    const n = AREAS_PRINCIPALES.reduce(function (a, area) { return a + valor(actual[area], cats); }, 0);
+    const p = AREAS_PRINCIPALES.reduce(function (a, area) { return a + valor(previo[area], cats); }, 0);
+    return '<td><div class="n">' + n + '</div><div class="d">' + deltaHtml(n - p) + '</div></td>';
+  }
+
+  top.forEach(function (c) {
+    html += '<tr><td>' + esc(c) + '</td>' + AREAS_PRINCIPALES.map(function (a) { return celda(a, [c]); }).join('') +
+      filaTotalCategoria([c]) + '</tr>';
+  });
+  if (resto.length > 0) {
+    html += '<tr><td>Resto de categorías (' + resto.length + ')</td>' +
+      AREAS_PRINCIPALES.map(function (a) { return celda(a, resto); }).join('') + filaTotalCategoria(resto) + '</tr>';
+  }
+  html += '<tr class="total"><td>Total</td>' + AREAS_PRINCIPALES.map(function (a) {
+    const n = totalArea[a];
+    const p = Object.values(previo[a]).reduce(function (x, y) { return x + y; }, 0);
+    return '<td><div class="n">' + n + '</div><div class="d">' + deltaHtml(n - p) + '</div></td>';
+  }).join('') + filaTotalCategoria(categorias) + '</tr>';
+  html += '</tbody></table>';
+
+  document.getElementById('matrizCategorias').innerHTML = html;
+}
+
+// ------------------------------------------------------------
+// 3. % SIN COLABORADOR ASIGNADO — por área
+// ------------------------------------------------------------
+function esSinAsignar(nombre) {
+  const n = String(nombre || '').trim().toLowerCase();
+  return n === '' || n.indexOf('sin ') === 0 || n === 'sin asignar';
+}
+
+function pctSinAsignar(filas) {
+  const analistas = sumarMapas(filas, 'analistas');
+  let total = 0, sin = 0;
+  Object.keys(analistas).forEach(function (k) {
+    total += analistas[k];
+    if (esSinAsignar(k)) sin += analistas[k];
+  });
+  return { total: total, sin: sin, pct: total > 0 ? sin / total * 100 : null };
+}
+
+function dibujarSinAsignar(datos) {
+  const v = ventanas4Semanas();
+  document.getElementById('subSinAsignar').textContent =
+    'Del ' + v.texto + ', con variación vs. las 4 semanas anteriores y tendencia semanal de las últimas 16 semanas';
+
+  const lunesFin = lunesUltimaSemanaCompleta();
+
+  let totalGeneral = 0, sinGeneral = 0;
+  const filasHtml = AREAS_PRINCIPALES.map(function (area) {
+    const act = pctSinAsignar(filasDiariasEnRango(datos, area, v.inicio, v.fin));
+    const prev = pctSinAsignar(filasDiariasEnRango(datos, area, v.prevInicio, v.prevFin));
+    totalGeneral += act.total;
+    sinGeneral += act.sin;
+
+    const serie = [];
+    for (let i = 15; i >= 0; i--) {
+      const l = sumarDias(lunesFin, -7 * i);
+      const r = pctSinAsignar(filasDiariasEnRango(datos, area, l, sumarDias(l, 6)));
+      if (r.pct !== null) serie.push(r.pct);
+    }
+
+    let variacion = '<span style="color:var(--gray-muted);">–</span>';
+    if (act.pct !== null && prev.pct !== null) {
+      variacion = deltaHtml(Math.round(act.pct - prev.pct), ' pts');
+    }
+
+    return '<tr>' +
+      '<td>' + esc(area) + '</td>' +
+      '<td class="num">' + act.total + '</td>' +
+      '<td class="num">' + act.sin + '</td>' +
+      '<td class="num" style="font-weight:700;">' + (act.pct === null ? '–' : formatoPct(act.pct)) + '</td>' +
+      '<td class="num">' + variacion + '</td>' +
+      '<td style="width:160px;">' + crearSparklineSvg(serie, colorDeArea(area)) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  const pctGeneral = totalGeneral > 0 ? sinGeneral / totalGeneral * 100 : 0;
+
+  document.getElementById('sinAsignar').innerHTML =
+    '<div class="kpi-mini-grid"><div class="kpi-mini"><div class="t">Las 6 áreas</div>' +
+      '<div class="v">' + formatoPct(pctGeneral) + '</div>' +
+      '<div class="s">' + sinGeneral + ' de ' + totalGeneral + ' quejas sin colaborador</div></div></div>' +
+    '<div class="tabla-scroll"><table class="tabla"><thead><tr>' +
+      '<th>Área</th><th class="num">Quejas</th><th class="num">Sin colaborador</th><th class="num">%</th>' +
+      '<th class="num">vs. 4 sem. ant.</th><th>Tendencia (% semanal)</th>' +
+    '</tr></thead><tbody>' + filasHtml + '</tbody></table></div>';
+}
+
+// ------------------------------------------------------------
+// 4. REINCIDENCIA POR NID — calculada desde los tickets individuales
+// (endpoint getTickets que ya existe en Code.gs; no requiere cambios
+// en Apps Script). Misma clasificación que AlertasDiarias.gs.
+// ------------------------------------------------------------
+function clasificarTicket(t) {
+  const empresa = String(t.empresa || '').toLowerCase();
+  const area = String(t.area_responsable || '').toLowerCase();
+  if (empresa.indexOf('brokers') !== -1) return null;
+  const esCo = empresa.indexOf('colombia') !== -1;
+  const esMx = empresa.indexOf('méxico') !== -1 || empresa.indexOf('mexico') !== -1;
+  if (!esCo && !esMx) return null;
+  let sub = null;
+  if (area.indexOf('sellers') !== -1) sub = 'Sellers';
+  else if (area.indexOf('buyers') !== -1) sub = 'Buyers';
+  else if (area.indexOf('inmobiliaria') !== -1) sub = 'Inmobiliaria';
+  if (!sub) return null;
+  if (esCo) return sub === 'Sellers' ? 'Trámites Sellers Colombia' : 'Colombia - ' + sub;
+  return 'México - ' + sub;
+}
+
+function nidValido(nid) {
+  const n = String(nid === undefined || nid === null ? '' : nid).trim();
+  const invalidos = ['', '-', 'na', 'n/a', 'null', 'none', 'undefined', '0', 'sin nid'];
+  return invalidos.indexOf(n.toLowerCase()) === -1 ? n : null;
+}
+
+async function cargarReincidencia() {
+  const sub = document.getElementById('subReincidencia');
+  try {
+    const resp = await fetch(BASE_URL + '?action=getTickets', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const tickets = await resp.json();
+    dibujarReincidencia(tickets);
+  } catch (err) {
+    console.error(err);
+    sub.textContent = 'No se pudieron cargar los tickets para calcular la reincidencia. Detalle: ' + err.message;
+  }
+}
+
+function calcularReincidencia(tickets, desde, hasta) {
+  const porArea = {};
+  AREAS_PRINCIPALES.forEach(function (a) { porArea[a] = {}; });
+  let sinNid = 0, total = 0;
+
+  tickets.forEach(function (t) {
+    const area = clasificarTicket(t);
+    if (!area) return;
+    const fecha = String(t.fecha_creacion || '').split('T')[0].split(' ')[0];
+    if (fecha < desde || fecha > hasta) return;
+    total++;
+    const nid = nidValido(t.nid);
+    if (!nid) { sinNid++; return; }
+    if (!porArea[area][nid]) porArea[area][nid] = [];
+    porArea[area][nid].push({ fecha: fecha, categoria: t.categoria || 'Sin categoría' });
+  });
+
+  const resumen = {};
+  AREAS_PRINCIPALES.forEach(function (area) {
+    const nids = Object.keys(porArea[area]);
+    const reincidentes = nids.filter(function (n) { return porArea[area][n].length >= 2; });
+    const quejasReinc = reincidentes.reduce(function (a, n) { return a + porArea[area][n].length; }, 0);
+    const quejasTot = nids.reduce(function (a, n) { return a + porArea[area][n].length; }, 0);
+    resumen[area] = {
+      nids: nids.length,
+      reincidentes: reincidentes.length,
+      tasa: nids.length > 0 ? reincidentes.length / nids.length * 100 : null,
+      pctVolumen: quejasTot > 0 ? quejasReinc / quejasTot * 100 : null,
+    };
+  });
+  return { porArea: porArea, resumen: resumen, sinNid: sinNid, total: total };
+}
+
+function dibujarReincidencia(tickets) {
+  const hoy = hoyLocal();
+  const hasta = sumarDias(hoy, -1);
+  const desde = sumarDias(hoy, -30);
+  const prevHasta = sumarDias(desde, -1);
+  const prevDesde = sumarDias(desde, -30);
+
+  const act = calcularReincidencia(tickets, desde, hasta);
+  const prev = calcularReincidencia(tickets, prevDesde, prevHasta);
+
+  document.getElementById('subReincidencia').textContent =
+    'Últimos 30 días (' + fechaCorta(desde) + ' – ' + fechaCorta(hasta) + ') vs. los 30 días anteriores' +
+    (act.sinNid > 0 ? ' · ' + act.sinNid + ' de ' + act.total + ' quejas sin NID no se pueden evaluar' : '');
+
+  const tarjetas = AREAS_PRINCIPALES.map(function (area) {
+    const r = act.resumen[area];
+    const p = prev.resumen[area];
+    let variacion = '';
+    if (r.tasa !== null && p.tasa !== null) {
+      variacion = ' · ' + deltaHtml(Math.round(r.tasa - p.tasa), ' pts') + ' vs. 30 días ant.';
+    }
+    return '<div class="kpi-mini">' +
+      '<div class="t">' + esc(area) + '</div>' +
+      '<div class="v" style="color:' + colorDeArea(area) + ';">' + (r.tasa === null ? '–' : formatoPct(r.tasa)) + '</div>' +
+      '<div class="s">' + r.reincidentes + ' de ' + r.nids + ' inmuebles con 2+ quejas' + variacion + '<br>' +
+        (r.pctVolumen === null ? '' : formatoPct(r.pctVolumen) + ' del volumen de quejas del área') + '</div>' +
     '</div>';
   }).join('');
+
+  // Lista de reincidentes activos para el cierre de ciclo
+  const lista = [];
+  AREAS_PRINCIPALES.forEach(function (area) {
+    const mapa = act.porArea[area];
+    Object.keys(mapa).forEach(function (nid) {
+      const q = mapa[nid];
+      if (q.length < 2) return;
+      const fechas = q.map(function (x) { return x.fecha; }).sort();
+      const cats = Array.from(new Set(q.map(function (x) { return x.categoria; })));
+      lista.push({ nid: nid, area: area, n: q.length, primera: fechas[0], ultima: fechas[fechas.length - 1], cats: cats });
+    });
+  });
+  lista.sort(function (a, b) { return b.n - a.n || (a.ultima < b.ultima ? 1 : -1); });
+
+  const MAX = 25;
+  const tabla = lista.length === 0
+    ? '<div class="sin-datos">No hay inmuebles reincidentes en los últimos 30 días.</div>'
+    : '<div class="subtitulo-tabla">Inmuebles reincidentes — prioridad de cierre de ciclo (' + lista.length + ')</div>' +
+      '<div class="tabla-scroll"><table class="tabla"><thead><tr>' +
+        '<th>NID</th><th>Área</th><th class="num">Quejas</th><th>Primera</th><th>Última</th><th>Categorías</th>' +
+      '</tr></thead><tbody>' +
+      lista.slice(0, MAX).map(function (x) {
+        return '<tr><td style="font-weight:700;">' + esc(x.nid) + '</td><td>' + esc(NOMBRE_CORTO[x.area]) + '</td>' +
+          '<td class="num" style="font-weight:700;">' + x.n + '</td><td>' + fechaCorta(x.primera) + '</td><td>' + fechaCorta(x.ultima) + '</td>' +
+          '<td style="font-size:12px;">' + x.cats.map(esc).join(', ') + '</td></tr>';
+      }).join('') +
+      '</tbody></table></div>' +
+      (lista.length > MAX ? '<div class="metas-nota">Se muestran los ' + MAX + ' con más quejas. El resto se puede buscar por NID en el tablero principal.</div>' : '');
+
+  document.getElementById('reincidencia').innerHTML = '<div class="kpi-mini-grid">' + tarjetas + '</div>' + tabla;
 }
 
 // ------------------------------------------------------------
