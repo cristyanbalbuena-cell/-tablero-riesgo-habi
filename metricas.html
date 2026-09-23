@@ -335,6 +335,23 @@
   .mes-row .delta.sube { background: #FDECEC; color: #C0392B; }
   .mes-row .delta.igual { background: #F0EDFB; color: var(--gray-muted); }
 
+  /* Metas por área (semáforo binario verde/rojo) */
+  .metas-grupo { margin-bottom: 18px; }
+  .metas-grupo h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-muted); margin: 0 0 10px; }
+  .metas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .meta-card { background: #FAFAFF; border: 1px solid #E5E0F5; border-left: 5px solid #999; border-radius: 12px; padding: 16px; }
+  .meta-card.verde { border-left-color: #00A884; }
+  .meta-card.rojo { border-left-color: #D64545; }
+  .meta-card .nombre-area { font-size: 13px; font-weight: 700; color: var(--violet-dark); margin-bottom: 8px; }
+  .meta-card .fila { display: flex; align-items: baseline; gap: 8px; }
+  .meta-card .valor { font-size: 32px; font-weight: 700; font-family: Georgia, serif; line-height: 1; }
+  .meta-card .vs { font-size: 13px; color: var(--gray-muted); }
+  .meta-card .estado-pill { display: inline-block; margin: 10px 0 8px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .meta-card.verde .estado-pill { background: #E3F9F1; color: #00805F; }
+  .meta-card.rojo .estado-pill { background: #FDECEC; color: #C0392B; }
+  .meta-card .detalle { font-size: 11px; color: var(--gray-muted); line-height: 1.5; }
+  .metas-nota { font-size: 11px; color: var(--gray-muted); margin-top: 6px; line-height: 1.5; }
+
   /* Resumen KPI con sparkline */
   .kpi-resumen-grid {
     display: grid;
@@ -396,6 +413,17 @@
   <div id="contenido" style="display:none;">
 
     <div class="card">
+      <h2>Metas por área</h2>
+      <div class="card-sub" id="subMetas">Última semana completa vs. meta del trimestre</div>
+      <div id="metasPorArea"></div>
+      <div class="metas-nota">
+        Línea base: mediana semanal del 5 de enero al 20 de septiembre de 2026.
+        Meta Q4 2026 = línea base −15%; meta Q1 2027 = línea base −30%.
+        México Sellers, Buyers e Inmobiliaria se evalúan sobre las últimas 4 semanas por su bajo volumen semanal.
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Resumen — última semana por área</h2>
       <div class="card-sub">Lo más simple: número de la semana, tendencia, e historia reciente</div>
       <div class="kpi-resumen-grid" id="kpiResumen"></div>
@@ -414,7 +442,7 @@
 
     <div class="card">
       <h2>Tendencia semanal por área</h2>
-      <div class="card-sub">Total reportado en cada alerta semanal comparativa (lunes)</div>
+      <div class="card-sub">Últimas 16 semanas completas (lunes a domingo) — usa el mismo filtro de áreas que la gráfica diaria</div>
       <div class="chart-wrap" id="chartSemanal"></div>
     </div>
 
@@ -432,7 +460,7 @@
 
     <div class="card">
       <h2>Top categorías de quejas</h2>
-      <div class="card-sub" id="fechaTopCategorias">Combinado de las 3 áreas — corte más reciente</div>
+      <div class="card-sub" id="fechaTopCategorias">Combinado de las 6 áreas — corte más reciente</div>
       <div class="categorias-list" id="topCategorias"></div>
     </div>
 
@@ -461,26 +489,48 @@ const BASE_URL = 'https://script.google.com/macros/s/AKfycbwMFgpkJtXR4JQwJe211Dy
 
 const COLORES_AREA = {
   'Trámites Sellers Colombia': '#6A06FA',
-  'Trámites Buyers e Inmobiliaria Colombia': '#00C29C',
-  'Trámites México (todo)': '#1A1033',
+  'Colombia - Buyers': '#00C29C',
+  'Colombia - Inmobiliaria': '#1A1033',
   'México - Sellers': '#8A3FFC',
-  'México - Buyers': '#00A884',
+  'México - Buyers': '#2E86DE',
   'México - Inmobiliaria': '#B8860B',
+  'Trámites Buyers e Inmobiliaria Colombia': '#0E7C6B',
+  'Trámites México (todo)': '#6B6B7A',
 };
 
+// Las 6 sub-áreas medidas por separado (no se suman con las filas combinadas)
 const AREAS_PRINCIPALES = [
   'Trámites Sellers Colombia',
-  'Trámites Buyers e Inmobiliaria Colombia',
-  'Trámites México (todo)',
+  'Colombia - Buyers',
+  'Colombia - Inmobiliaria',
+  'México - Sellers',
+  'México - Buyers',
+  'México - Inmobiliaria',
 ];
+const AREAS_COLOMBIA = ['Trámites Sellers Colombia', 'Colombia - Buyers', 'Colombia - Inmobiliaria'];
+const AREAS_MEXICO = ['México - Sellers', 'México - Buyers', 'México - Inmobiliaria'];
+// Totales por grupo de Chat (como los recibe cada gerente)
+const AREAS_GRUPO_CHAT = ['Trámites Sellers Colombia', 'Trámites Buyers e Inmobiliaria Colombia', 'Trámites México (todo)'];
 
 // ------------------------------------------------------------
-// META / OBJETIVO — línea de referencia en las gráficas.
-// Ajusta estos números cuando tengan un objetivo real definido;
-// por ahora son un punto de partida razonable para conversar.
+// METAS POR ÁREA (acordadas sept 2026)
+// base = mediana semanal 5-ene a 20-sep-2026 (en semanas = ventana)
+// q4 = base −15% (vigente hasta 31-dic-2026); q1 = base −30% (desde 1-ene-2027)
+// ventana = número de semanas completas que se suman para evaluar
 // ------------------------------------------------------------
-const META_DIARIA = 5;   // tickets por día, por área, como referencia
-const META_SEMANAL = 15; // tickets por semana, por área, como referencia
+const METAS = {
+  'Trámites Sellers Colombia': { ventana: 1, base: 35,   q4: 30, q1: 25 },
+  'Colombia - Buyers':         { ventana: 1, base: 25,   q4: 21, q1: 18 },
+  'Colombia - Inmobiliaria':   { ventana: 1, base: 21,   q4: 18, q1: 15 },
+  'México - Sellers':          { ventana: 4, base: 19.5, q4: 17, q1: 14 },
+  'México - Buyers':           { ventana: 4, base: 13,   q4: 11, q1: 9 },
+  'México - Inmobiliaria':     { ventana: 4, base: 18.5, q4: 16, q1: 13 },
+};
+const FECHA_CAMBIO_META = '2027-01-01';
+
+// Ya no hay una sola meta para todas las áreas: las gráficas no dibujan línea de meta
+const META_DIARIA = null;
+const META_SEMANAL = null;
 
 let datosGlobales = [];
 let areaFiltroActivo = null; // se inicializa en construirFiltros
@@ -502,9 +552,10 @@ async function cargarDatos() {
 
     construirFiltros(datos);
     construirSelectorMes(datos);
+    dibujarMetas(datos);
     dibujarResumenKPI(datos);
     redibujarDiario(datos);
-    dibujarBarChart('chartSemanal', datos, 'semanal', AREAS_PRINCIPALES);
+    redibujarSemanal(datos);
     dibujarComparacionMensual(datos);
     dibujarComparacionPaises(datos);
     dibujarTopCategorias(datos);
@@ -762,14 +813,148 @@ function dibujarBarChart(contenedorId, datos, tipo, areasFiltro) {
   contenedor.innerHTML = crearSvgBarChart(fechas, series, META_SEMANAL) + construirLeyenda(series);
 }
 
+// ------------------------------------------------------------
+// Utilidades de fechas (todo en UTC para que no dependa del navegador)
+// ------------------------------------------------------------
+function sumarDias(fechaStr, dias) {
+  const d = new Date(fechaStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+function lunesDe(fechaStr) {
+  const d = new Date(fechaStr + 'T00:00:00Z');
+  return sumarDias(fechaStr, -((d.getUTCDay() + 6) % 7));
+}
+function hoyLocal() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// Lunes de la última semana completa (lunes a domingo) antes de hoy
+function lunesUltimaSemanaCompleta() {
+  return sumarDias(lunesDe(hoyLocal()), -7);
+}
+function fechaCorta(fechaStr) {
+  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  return parseInt(fechaStr.slice(8, 10), 10) + ' ' + meses[parseInt(fechaStr.slice(5, 7), 10) - 1];
+}
+
+// Totales semanales (lunes a domingo) calculados desde las filas diarias
+function totalesSemanales(datos, area) {
+  const mapa = {};
+  datos.forEach(function (d) {
+    if (d.tipo !== 'diario' || d.area !== area) return;
+    const l = lunesDe(d.fecha_registro);
+    mapa[l] = (mapa[l] || 0) + Number(d.total);
+  });
+  return mapa;
+}
+
+function metaVigente(meta, fechaStr) {
+  return fechaStr >= FECHA_CAMBIO_META ? meta.q1 : meta.q4;
+}
+
+// ------------------------------------------------------------
+// Tarjetas de metas por área — semáforo binario verde/rojo
+// ------------------------------------------------------------
+function dibujarMetas(datos) {
+  const contenedor = document.getElementById('metasPorArea');
+  const lunesFin = lunesUltimaSemanaCompleta();
+  const domingoFin = sumarDias(lunesFin, 6);
+  const trimestreInicio = domingoFin.slice(0, 5) +
+    String(Math.floor((parseInt(domingoFin.slice(5, 7), 10) - 1) / 3) * 3 + 1).padStart(2, '0') + '-01';
+  const etiquetaMeta = domingoFin >= FECHA_CAMBIO_META ? 'Q1 2027' : 'Q4 2026';
+
+  document.getElementById('subMetas').textContent =
+    'Corte: semana del ' + fechaCorta(lunesFin) + ' al ' + fechaCorta(domingoFin) + ' — meta vigente ' + etiquetaMeta +
+    '. Verde = en meta o por debajo; rojo = por encima.';
+
+  const grupos = [
+    { titulo: 'Colombia — Sellers', areas: ['Trámites Sellers Colombia'] },
+    { titulo: 'Colombia — Buyers e Inmobiliaria', areas: ['Colombia - Buyers', 'Colombia - Inmobiliaria'] },
+    { titulo: 'México', areas: AREAS_MEXICO },
+  ];
+
+  contenedor.innerHTML = grupos.map(function (g) {
+    const tarjetas = g.areas.map(function (area) {
+      const meta = METAS[area];
+      const semanas = totalesSemanales(datos, area);
+
+      function valorVentana(lunes) {
+        let suma = 0;
+        for (let i = 0; i < meta.ventana; i++) {
+          const l = sumarDias(lunes, -7 * i);
+          if (semanas[l] === undefined) return null;
+          suma += semanas[l];
+        }
+        return suma;
+      }
+
+      const valor = valorVentana(lunesFin);
+      if (valor === null) {
+        return '<div class="meta-card"><div class="nombre-area">' + area + '</div>' +
+          '<div class="detalle">Sin datos suficientes para el corte.</div></div>';
+      }
+      const metaActual = metaVigente(meta, domingoFin);
+      const enMeta = valor <= metaActual;
+
+      // Semanas del trimestre en curso que cumplieron la meta
+      let cumplidas = 0, evaluadas = 0;
+      for (let l = lunesDe(trimestreInicio) < trimestreInicio ? sumarDias(lunesDe(trimestreInicio), 7) : trimestreInicio;
+           l <= lunesFin; l = sumarDias(l, 7)) {
+        const v = valorVentana(l);
+        if (v === null) continue;
+        evaluadas++;
+        if (v <= metaVigente(meta, sumarDias(l, 6))) cumplidas++;
+      }
+
+      const textoVentana = meta.ventana === 1
+        ? 'tickets en la semana'
+        : 'tickets en las últimas 4 semanas (' + fechaCorta(sumarDias(lunesFin, -21)) + ' – ' + fechaCorta(domingoFin) + ')';
+      const baseTxt = meta.ventana === 1 ? meta.base + ' por semana' : meta.base + ' cada 4 semanas';
+
+      return '<div class="meta-card ' + (enMeta ? 'verde' : 'rojo') + '">' +
+        '<div class="nombre-area">' + area + '</div>' +
+        '<div class="fila"><span class="valor" style="color:' + colorDeArea(area) + ';">' + valor + '</span>' +
+        '<span class="vs">/ meta ' + metaActual + '</span></div>' +
+        '<div class="detalle">' + textoVentana + '</div>' +
+        '<span class="estado-pill">' + (enMeta ? 'En meta' : 'Fuera de meta (+' + (valor - metaActual) + ')') + '</span>' +
+        '<div class="detalle">' +
+          (evaluadas > 0 ? 'En meta ' + cumplidas + ' de ' + evaluadas + ' semanas del trimestre<br>' : '') +
+          'Línea base: ' + baseTxt + ' · Meta Q4 2026: ' + meta.q4 + ' · Meta Q1 2027: ' + meta.q1 +
+        '</div>' +
+      '</div>';
+    }).join('');
+    return '<div class="metas-grupo"><h3>' + g.titulo + '</h3><div class="metas-grid">' + tarjetas + '</div></div>';
+  }).join('');
+}
+
+// ------------------------------------------------------------
+// Gráfica semanal: últimas 16 semanas completas, calculadas desde las
+// filas diarias, con el mismo filtro de áreas que la gráfica diaria
+// ------------------------------------------------------------
+function redibujarSemanal(datos) {
+  const lunesFin = lunesUltimaSemanaCompleta();
+  const lunesInicio = sumarDias(lunesFin, -7 * 15);
+  const filas = [];
+  areaFiltroActivo.forEach(function (area) {
+    const semanas = totalesSemanales(datos, area);
+    Object.keys(semanas).forEach(function (l) {
+      if (l < lunesInicio || l > lunesFin) return;
+      filas.push({ tipo: 'semanal', area: area, fecha_registro: l, total: semanas[l] });
+    });
+  });
+  dibujarBarChart('chartSemanal', filas, 'semanal', areaFiltroActivo);
+}
+
 function construirFiltros(datos) {
   const contenedor = document.getElementById('filtrosDiario');
   contenedor.innerHTML = '';
 
   const opciones = [
-    { label: 'Vista general', areas: AREAS_PRINCIPALES },
-    { label: 'Solo Colombia', areas: ['Trámites Sellers Colombia', 'Trámites Buyers e Inmobiliaria Colombia'] },
-    { label: 'Solo México (por sub-área)', areas: ['México - Sellers', 'México - Buyers', 'México - Inmobiliaria'] },
+    { label: 'Las 6 áreas', areas: AREAS_PRINCIPALES },
+    { label: 'Colombia (por sub-área)', areas: AREAS_COLOMBIA },
+    { label: 'México (por sub-área)', areas: AREAS_MEXICO },
+    { label: 'Totales por grupo de Chat', areas: AREAS_GRUPO_CHAT },
   ];
 
   areaFiltroActivo = opciones[0].areas;
@@ -783,6 +968,7 @@ function construirFiltros(datos) {
       btn.classList.add('activo');
       areaFiltroActivo = op.areas;
       redibujarDiario(datos);
+      redibujarSemanal(datos);
     });
     contenedor.appendChild(btn);
   });
@@ -927,7 +1113,7 @@ function crearSparklineSvg(valores, color) {
 // Tarjetas de resumen: última semana + tendencia + sparkline, por área
 // ------------------------------------------------------------
 function dibujarResumenKPI(datos) {
-  const semanales = datos.filter(function (d) { return d.tipo === 'semanal' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  const semanales = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
   const contenedor = document.getElementById('kpiResumen');
 
   if (semanales.length === 0) {
@@ -935,10 +1121,15 @@ function dibujarResumenKPI(datos) {
     return;
   }
 
+  // Semanas completas calculadas desde las filas diarias (así nunca se
+  // muestra una semana a medias y coincide con la tarjeta de metas)
+  const lunesFin = lunesUltimaSemanaCompleta();
   contenedor.innerHTML = AREAS_PRINCIPALES.map(function (area) {
-    const filasArea = semanales
-      .filter(function (d) { return d.area === area; })
-      .sort(function (a, b) { return a.fecha_registro < b.fecha_registro ? -1 : 1; });
+    const semanas = totalesSemanales(datos, area);
+    const filasArea = Object.keys(semanas)
+      .filter(function (l) { return l <= lunesFin; })
+      .sort()
+      .map(function (l) { return { fecha_registro: l, total: semanas[l] }; });
 
     if (filasArea.length === 0) {
       return '<div class="kpi-resumen-card"><div class="nombre-area">' + area + '</div>' +
@@ -964,7 +1155,7 @@ function dibujarResumenKPI(datos) {
     return '<div class="kpi-resumen-card">' +
       '<div class="nombre-area">' + area + '</div>' +
       '<div class="fila-numero"><span class="numero-grande" style="color:' + color + ';">' + ultima.total + '</span></div>' +
-      '<div class="etiqueta-numero">tickets — semana del ' + ultima.fecha_registro + '</div>' +
+      '<div class="etiqueta-numero">tickets — semana del ' + fechaCorta(ultima.fecha_registro) + ' al ' + fechaCorta(sumarDias(ultima.fecha_registro, 6)) + '</div>' +
       deltaHtml +
       '<div class="sparkline-wrap">' + crearSparklineSvg(ultimasN, color) + '</div>' +
     '</div>';
@@ -994,15 +1185,25 @@ function dibujarComparacionMensual(datos) {
     return nombresMes[parseInt(partes[1], 10) - 1] + ' ' + partes[0];
   }
 
-  document.getElementById('fechaComparacionMensual').textContent =
-    nombreDeYm(mesActual).replace(/^./, function (c) { return c.toUpperCase(); }) +
-    (mesAnterior ? ' vs. ' + nombreDeYm(mesAnterior) : ' (sin mes anterior completo para comparar todavía)');
+  // Compara el mismo número de días en ambos meses (ej. 1–22 sep vs. 1–22 ago),
+  // para no comparar un mes a medias contra un mes completo.
+  const ultimoDia = diarios
+    .filter(function (d) { return d.fecha_registro.slice(0, 7) === mesActual; })
+    .map(function (d) { return parseInt(d.fecha_registro.slice(8, 10), 10); })
+    .reduce(function (a, b) { return Math.max(a, b); }, 0);
 
   function totalDeArea(area, ym) {
     return diarios
-      .filter(function (d) { return d.area === area && d.fecha_registro.slice(0, 7) === ym; })
+      .filter(function (d) {
+        return d.area === area && d.fecha_registro.slice(0, 7) === ym &&
+          parseInt(d.fecha_registro.slice(8, 10), 10) <= ultimoDia;
+      })
       .reduce(function (acc, d) { return acc + Number(d.total); }, 0);
   }
+
+  document.getElementById('fechaComparacionMensual').textContent =
+    nombreDeYm(mesActual).replace(/^./, function (c) { return c.toUpperCase(); }) +
+    (mesAnterior ? ' vs. ' + nombreDeYm(mesAnterior) + ' — días 1 al ' + ultimoDia + ' de cada mes' : ' (sin mes anterior para comparar todavía)');
 
   contenedor.innerHTML = AREAS_PRINCIPALES.map(function (area) {
     const actual = totalDeArea(area, mesActual);
@@ -1038,12 +1239,13 @@ function dibujarComparacionPaises(datos) {
   const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
   document.getElementById('fechaComparacionPaises').textContent = 'Corte del ' + fechaMasReciente;
 
-  const filaSellersCo = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites Sellers Colombia'; });
-  const filaBuyersCo = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites Buyers e Inmobiliaria Colombia'; });
-  const filaMx = diarios.find(function (d) { return d.fecha_registro === fechaMasReciente && d.area === 'Trámites México (todo)'; });
-
-  const totalCo = (filaSellersCo ? Number(filaSellersCo.total) : 0) + (filaBuyersCo ? Number(filaBuyersCo.total) : 0);
-  const totalMx = filaMx ? Number(filaMx.total) : 0;
+  function totalPais(areas) {
+    return diarios
+      .filter(function (d) { return d.fecha_registro === fechaMasReciente && areas.indexOf(d.area) !== -1; })
+      .reduce(function (acc, d) { return acc + Number(d.total); }, 0);
+  }
+  const totalCo = totalPais(AREAS_COLOMBIA);
+  const totalMx = totalPais(AREAS_MEXICO);
   const totalGeneral = Math.max(1, totalCo + totalMx);
   const pctCo = Math.round((totalCo / totalGeneral) * 100);
   const pctMx = 100 - pctCo;
@@ -1082,7 +1284,7 @@ function dibujarTopCategorias(datos) {
   }
 
   const fechaMasReciente = diarios.map(function (d) { return d.fecha_registro; }).sort().slice(-1)[0];
-  document.getElementById('fechaTopCategorias').textContent = 'Combinado de las 3 áreas — corte del ' + fechaMasReciente;
+  document.getElementById('fechaTopCategorias').textContent = 'Combinado de las 6 áreas — corte del ' + fechaMasReciente;
 
   const filasDeHoy = diarios.filter(function (d) { return d.fecha_registro === fechaMasReciente; });
   const combinado = {};
