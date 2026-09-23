@@ -373,7 +373,7 @@
   <datalist id="colabDatalist"></datalist>
 </section>
 
-<footer>Datos de ejemplo cargados para demostración · Usa "Importar datos" para subir tu exportación real de Zendesk (CSV o JSON) · Resúmenes generados con la API de Claude</footer>
+<footer>Datos de Zendesk vía BigQuery, actualizados cada 12 horas · Las reasignaciones de colaborador y área se guardan en la pestaña Correcciones · Resúmenes generados con la API de Claude</footer>
 
 <!-- MODAL: Agregar ticket -->
 <div class="modal-backdrop" id="modalBackdrop">
@@ -887,6 +887,10 @@ function renderPqr(){
   list.innerHTML = "";
   for(const t of cases){
     const isOpen = expandedCaseIds.has(t.id);
+    // Áreas a las que se puede mover este ticket (las de Trámites de su marca)
+    const areasTicket = Object.keys(AUTHORIZED_MAP[t.marca] || {});
+    if(t.area && areasTicket.indexOf(t.area) === -1) areasTicket.unshift(t.area);
+    const areaOptionsTicket = areasTicket.map(a=> `<option value="${a}" ${a===t.area?"selected":""}>${a}</option>`).join("");
     const dpTag = t.marca === "Habi Colombia"
       ? `<span class="tag ${t.esDerechoPeticion ? 'violet' : ''}">${t.esDerechoPeticion ? "Derecho de Petición" : "No es Derecho de Petición"}</span>`
       : "";
@@ -924,6 +928,11 @@ function renderPqr(){
             <label style="font-size:12px;color:var(--text-dim);">¿Colaborador asignado incorrectamente? Corrígelo aquí:</label>
             <input type="text" list="colabDatalist" id="reassignInput-${t.id}" placeholder="Nombre del analista correcto" value="${t.colaborador === 'Sin asignar' ? '' : t.colaborador}" style="flex:1;min-width:180px;">
             <button class="small primary" data-reassign="${t.id}">Reasignar</button>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-top:8px;">
+            <label style="font-size:12px;color:var(--text-dim);">¿Área incorrecta? Muévelo aquí:</label>
+            <select id="reassignAreaSelect-${t.id}" style="flex:1;min-width:180px;">${areaOptionsTicket}</select>
+            <button class="small primary" data-reassignarea="${t.id}">Cambiar área</button>
           </div>
         </div>` : ""}
       </div>
@@ -1386,6 +1395,23 @@ document.body.addEventListener("click", e=>{
     expandedCollabKey = `${colaborador}|${marca}|${nuevaArea}`;
     renderAll();
     showToast(`${corregidos} ticket(s) de ${colaborador} movidos a ${nuevaArea} (guardado permanente)`);
+    return;
+  }
+
+  const reassignAreaBtn = e.target.closest("[data-reassignarea]");
+  if(reassignAreaBtn){
+    const ticketId = reassignAreaBtn.dataset.reassignarea;
+    const select = document.getElementById(`reassignAreaSelect-${ticketId}`);
+    const ticket = TICKETS.find(t=> t.id === ticketId);
+    if(!ticket || !select){ return; }
+    const nuevaArea = select.value;
+    if(nuevaArea === ticket.area){ showToast("Selecciona un área distinta a la actual."); return; }
+    const anterior = ticket.area;
+    ticket.area = nuevaArea;
+    registrarCorreccion(ticketId, {area: nuevaArea});
+    guardarTicketsEnCache();
+    renderAll();
+    showToast(`Ticket ${ticketId} movido de "${anterior}" a "${nuevaArea}" (guardado permanente)`);
     return;
   }
 
