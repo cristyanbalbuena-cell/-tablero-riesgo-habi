@@ -1174,7 +1174,11 @@ function dibujarResumenKPI(datos) {
 // Comparación mes actual vs. mes anterior, por área principal
 // ------------------------------------------------------------
 function dibujarComparacionMensual(datos) {
-  const diarios = datos.filter(function (d) { return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1; });
+  // Solo días completos: se excluye hoy (incompleto) y cualquier fila posterior
+  const ayer = sumarDias(hoyLocal(), -1);
+  const diarios = datos.filter(function (d) {
+    return d.tipo === 'diario' && AREAS_PRINCIPALES.indexOf(d.area) !== -1 && d.fecha_registro <= ayer;
+  });
   const contenedor = document.getElementById('comparacionMensual');
 
   if (diarios.length === 0) {
@@ -1209,9 +1213,14 @@ function dibujarComparacionMensual(datos) {
       .reduce(function (acc, d) { return acc + Number(d.total); }, 0);
   }
 
+  // El mes está en curso si ayer no fue su último día
+  const mesEnCurso = sumarDias(ayer, 1).slice(0, 7) === mesActual;
   document.getElementById('fechaComparacionMensual').textContent =
     nombreDeYm(mesActual).replace(/^./, function (c) { return c.toUpperCase(); }) +
-    (mesAnterior ? ' vs. ' + nombreDeYm(mesAnterior) + ' — días 1 al ' + ultimoDia + ' de cada mes' : ' (sin mes anterior para comparar todavía)');
+    (mesAnterior ? ' vs. ' + nombreDeYm(mesAnterior) + ' — días 1 al ' + ultimoDia + ' de cada mes (hasta ayer)' : ' (sin mes anterior para comparar todavía)') +
+    (mesEnCurso
+      ? '. Cifra preliminar: el mes sigue en curso y las quejas que se escalan tarde se suman después con su fecha original.'
+      : '. Las quejas escaladas tarde pueden seguir sumándose unos días después del cierre del mes.');
 
   contenedor.innerHTML = AREAS_PRINCIPALES.map(function (area) {
     const actual = totalDeArea(area, mesActual);
