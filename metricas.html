@@ -4,10 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Métricas — Tablero de Riesgo Habi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --violet: #6A06FA;
-    --violet-dark: #3D0399;
+    --violet: #5928E5;
+    --violet-dark: #3A1A9E;
     --green: #00C29C;
     --aqua: #66F7DB;
     --text-dark: #1A1033;
@@ -19,7 +22,7 @@
 
   body {
     margin: 0;
-    font-family: -apple-system, "Segoe UI", Calibri, Arial, sans-serif;
+    font-family: "Montserrat", -apple-system, "Segoe UI", Arial, sans-serif;
     background: var(--bg-light);
     color: var(--text-dark);
   }
@@ -215,7 +218,7 @@
     font-size: 42px;
     font-weight: 700;
     line-height: 1;
-    font-family: Georgia, serif;
+    font-family: inherit;
   }
 
   .comparacion-stat .etiqueta {
@@ -335,6 +338,17 @@
   .mes-row .delta.sube { background: #FDECEC; color: #C0392B; }
   .mes-row .delta.igual { background: #F0EDFB; color: var(--gray-muted); }
 
+  /* Bloques del tablero */
+  .bloque-titulo { margin: 34px 0 14px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .bloque-titulo.primero { margin-top: 0; }
+  .bloque-titulo .num { background: var(--violet); color: white; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; align-self: center; }
+  .bloque-titulo h2 { margin: 0; font-size: 20px; color: var(--text-dark); }
+  .bloque-titulo .desc { font-size: 13px; color: var(--gray-muted); }
+  .mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .mini-card { background: #FAFAFF; border: 1px solid #E5E0F5; border-radius: 12px; padding: 14px 16px 8px; }
+  .mini-card .t { font-size: 13px; font-weight: 700; color: var(--violet-dark); }
+  .mini-card .s { font-size: 11px; color: var(--gray-muted); margin-bottom: 6px; }
+
   /* Metas por área (semáforo binario verde/rojo) */
   .metas-grupo { margin-bottom: 18px; }
   .metas-grupo h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-muted); margin: 0 0 10px; }
@@ -344,7 +358,7 @@
   .meta-card.rojo { border-left-color: #D64545; }
   .meta-card .nombre-area { font-size: 13px; font-weight: 700; color: var(--violet-dark); margin-bottom: 8px; }
   .meta-card .fila { display: flex; align-items: baseline; gap: 8px; }
-  .meta-card .valor { font-size: 32px; font-weight: 700; font-family: Georgia, serif; line-height: 1; }
+  .meta-card .valor { font-size: 32px; font-weight: 700; font-family: inherit; line-height: 1; }
   .meta-card .vs { font-size: 13px; color: var(--gray-muted); }
   .meta-card .estado-pill { display: inline-block; margin: 10px 0 8px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
   .meta-card.verde .estado-pill { background: #E3F9F1; color: #00805F; }
@@ -356,7 +370,7 @@
   .avance-paises { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
   .avance-pais { background: #FAFAFF; border: 1px solid #E5E0F5; border-radius: 12px; padding: 16px; text-align: center; }
   .avance-pais .pais { font-size: 13px; font-weight: 700; color: var(--violet-dark); }
-  .avance-pais .pct { font-size: 34px; font-weight: 700; font-family: Georgia, serif; margin: 6px 0 2px; }
+  .avance-pais .pct { font-size: 34px; font-weight: 700; font-family: inherit; margin: 6px 0 2px; }
   .avance-pais .det { font-size: 11px; color: var(--gray-muted); }
   .verde-txt { color: #00805F; }
   .rojo-txt { color: #C0392B; }
@@ -386,7 +400,7 @@
   .kpi-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
   .kpi-mini { background: #FAFAFF; border: 1px solid #E5E0F5; border-radius: 12px; padding: 12px 14px; }
   .kpi-mini .t { font-size: 12px; font-weight: 700; color: var(--violet-dark); }
-  .kpi-mini .v { font-size: 26px; font-weight: 700; font-family: Georgia, serif; margin: 4px 0; }
+  .kpi-mini .v { font-size: 26px; font-weight: 700; font-family: inherit; margin: 4px 0; }
   .kpi-mini .s { font-size: 11px; color: var(--gray-muted); }
   .subtitulo-tabla { font-size: 13px; font-weight: 700; color: var(--violet-dark); margin: 6px 0 8px; }
   .tabla-alta { max-height: 460px; overflow: auto; border: 1px solid #F0EDFB; border-radius: 8px; }
@@ -427,7 +441,7 @@
   .kpi-resumen-card .numero-grande {
     font-size: 34px;
     font-weight: 700;
-    font-family: Georgia, serif;
+    font-family: inherit;
     line-height: 1;
   }
 
@@ -456,6 +470,8 @@
   <div id="estado" class="estado">Cargando histórico…</div>
   <div id="contenido" style="display:none;">
 
+    <div class="bloque-titulo primero"><span class="num">1</span><h2>¿Cumplimos la meta?</h2><span class="desc">Última semana completa y últimas 4 semanas contra la línea base</span></div>
+
     <div class="card">
       <h2>Metas por área</h2>
       <div class="card-sub" id="subMetas">Última semana completa vs. meta del trimestre</div>
@@ -468,9 +484,41 @@
     </div>
 
     <div class="card">
-      <h2>Resumen — última semana por área</h2>
-      <div class="card-sub">Lo más simple: número de la semana, tendencia, e historia reciente</div>
-      <div class="kpi-resumen-grid" id="kpiResumen"></div>
+      <h2>Avance vs. línea base</h2>
+      <div class="card-sub" id="subAvance">Últimas 4 semanas completas vs. línea base de cada área</div>
+      <div id="avanceBase"></div>
+    </div>
+
+    <div class="bloque-titulo"><span class="num">2</span><h2>¿Dónde está el problema?</h2><span class="desc">Motivos, inmuebles que reinciden y calidad de la asignación</span></div>
+
+    <div class="card">
+      <h2>Categoría × área</h2>
+      <div class="card-sub" id="subMatriz">Últimas 4 semanas completas</div>
+      <div class="tabla-scroll" id="matrizCategorias"></div>
+      <div class="metas-nota">Número = quejas en las últimas 4 semanas. Debajo, la variación contra las 4 semanas anteriores (verde = bajó, rojo = subió). El color de fondo indica el peso de la categoría dentro de su área.</div>
+    </div>
+
+    <div class="card">
+      <h2>Reincidencia por inmueble (NID)</h2>
+      <div class="card-sub" id="subReincidencia">Cargando tickets…</div>
+      <div id="reincidencia"></div>
+      <div class="metas-nota">Reincidente = un mismo NID con 2 o más quejas en los últimos 30 días dentro de la misma área. El NID identifica al inmueble, no a la persona. Como se cuenta por área, si el seller y el buyer del mismo inmueble se quejan una vez cada uno, no es reincidencia: cada queja queda en su área.</div>
+    </div>
+
+    <div class="card">
+      <h2>Quejas sin colaborador asignado</h2>
+      <div class="card-sub" id="subSinAsignar">Últimas 4 semanas completas</div>
+      <div id="sinAsignar"></div>
+      <div class="metas-nota">Mientras una queja no tenga colaborador, no entra en ningún ranking ni en el desglose del mensaje de Chat. Este porcentaje mide qué tanto del volumen real queda fuera del accountability individual.</div>
+    </div>
+
+    <div class="bloque-titulo"><span class="num">3</span><h2>Tendencia</h2><span class="desc">Cómo evoluciona cada área en el tiempo</span></div>
+
+    <div class="card">
+      <h2>Tendencia semanal por área</h2>
+      <div class="card-sub" id="subSemanalAreas">Últimas 16 semanas completas, cada área contra su meta</div>
+      <div class="mini-grid" id="semanalPorArea"></div>
+      <div class="metas-nota">Barra verde = semana en meta; roja = por encima; gris = área sin meta. La línea punteada es la meta vigente. En México cada barra es la suma de las últimas 4 semanas, igual que su meta.</div>
     </div>
 
     <div class="card">
@@ -485,52 +533,9 @@
     </div>
 
     <div class="card">
-      <h2>Tendencia semanal por área</h2>
-      <div class="card-sub">Últimas 16 semanas completas (lunes a domingo) — usa el mismo filtro de áreas que la gráfica diaria</div>
-      <div class="chart-wrap" id="chartSemanal"></div>
-    </div>
-
-    <div class="card">
       <h2>Mes vs. mes anterior</h2>
       <div class="card-sub" id="fechaComparacionMensual"></div>
       <div id="comparacionMensual"></div>
-    </div>
-
-    <div class="card">
-      <h2>Avance vs. línea base</h2>
-      <div class="card-sub" id="subAvance">Últimas 4 semanas completas vs. línea base de cada área</div>
-      <div id="avanceBase"></div>
-    </div>
-
-    <div class="card">
-      <h2>¿Dónde está el problema? Categoría × área</h2>
-      <div class="card-sub" id="subMatriz">Últimas 4 semanas completas</div>
-      <div class="tabla-scroll" id="matrizCategorias"></div>
-      <div class="metas-nota">Número = quejas en las últimas 4 semanas. Debajo, la variación contra las 4 semanas anteriores (verde = bajó, rojo = subió). El color de fondo indica el peso de la categoría dentro de su área.</div>
-    </div>
-
-    <div class="card">
-      <h2>Quejas sin colaborador asignado</h2>
-      <div class="card-sub" id="subSinAsignar">Últimas 4 semanas completas</div>
-      <div id="sinAsignar"></div>
-      <div class="metas-nota">Mientras una queja no tenga colaborador, no entra en ningún ranking ni en el desglose del mensaje de Chat. Este porcentaje mide qué tanto del volumen real queda fuera del accountability individual.</div>
-    </div>
-
-    <div class="card">
-      <h2>Tickets por asignar</h2>
-      <div class="card-sub" id="subPorAsignar">Cargando tickets…</div>
-      <div id="porAsignar"></div>
-      <div class="metas-nota">
-        Cómo asignarlos: en el tablero principal, buscar el ID del ticket en "Buscar por NID, Colaborador, ID de ticket", abrirlo y escribir el analista en "¿Colaborador asignado incorrectamente?".
-        La asignación se guarda en la pestaña Correcciones y desaparece de esta lista al recargar. Las alertas y el histórico la toman después de volver a correr el backfill.
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Reincidencia por inmueble (NID)</h2>
-      <div class="card-sub" id="subReincidencia">Cargando tickets…</div>
-      <div id="reincidencia"></div>
-      <div class="metas-nota">Reincidente = un mismo NID con 2 o más quejas en los últimos 30 días dentro de la misma área. El NID identifica al inmueble, no a la persona. Como se cuenta por área, si el seller y el buyer del mismo inmueble se quejan una vez cada uno, no es reincidencia: cada queja queda en su área.</div>
     </div>
 
     <div class="card" style="text-align:center;">
@@ -551,7 +556,7 @@
 const BASE_URL = 'https://script.google.com/macros/s/AKfycbwMFgpkJtXR4JQwJe211DyTrMir3UsUO6IDcSGqCGqkP2MkXe4BHzqoLpD7soeMBWUy/exec';
 
 const COLORES_AREA = {
-  'Trámites Sellers Colombia': '#6A06FA',
+  'Trámites Sellers Colombia': '#5928E5',
   'Colombia - Buyers': '#00C29C',
   'Colombia - Inmobiliaria': '#1A1033',
   'México - Sellers': '#8A3FFC',
@@ -619,9 +624,8 @@ async function cargarDatos() {
     construirFiltros(datos);
     construirSelectorMes(datos);
     dibujarMetas(datos);
-    dibujarResumenKPI(datos);
     redibujarDiario(datos);
-    redibujarSemanal(datos);
+    dibujarSemanalPorArea(datos);
     dibujarComparacionMensual(datos);
     dibujarAvanceBase(datos);
     dibujarMatrizCategorias(datos);
@@ -700,7 +704,7 @@ function crearSvgLineChart(fechas, series, metaValor, usarPromedio) {
   function yPos(v) { return margin.top + innerH - (v / maxVal) * innerH; }
 
   let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" ' +
-    'xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">';
+    'xmlns="http://www.w3.org/2000/svg" font-family="Montserrat, Arial, sans-serif">';
 
   const divisiones = 4;
   for (let g = 0; g <= divisiones; g++) {
@@ -797,7 +801,7 @@ function crearSvgBarChart(fechas, series, metaValor) {
   function yPos(v) { return margin.top + innerH - (v / maxVal) * innerH; }
 
   let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" ' +
-    'xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">';
+    'xmlns="http://www.w3.org/2000/svg" font-family="Montserrat, Arial, sans-serif">';
 
   const divisiones = 4;
   for (let g = 0; g <= divisiones; g++) {
@@ -1024,6 +1028,62 @@ function redibujarSemanal(datos) {
   dibujarBarChart('chartSemanal', filas, 'semanal', areaFiltroActivo);
 }
 
+// ------------------------------------------------------------
+// Tendencia semanal: una mini-gráfica por área contra su meta
+// ------------------------------------------------------------
+function crearMiniBarras(valores, etiquetas, meta, color) {
+  const W = 300, H = 130, padL = 26, padB = 18, padT = 12;
+  const maxV = Math.max(1, meta || 0, ...valores) * 1.15;
+  const n = valores.length;
+  const ancho = (W - padL - 4) / n;
+  const y = function (v) { return padT + (H - padT - padB) * (1 - v / maxV); };
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Montserrat, Arial, sans-serif">';
+  [0, Math.round(maxV / 2), Math.round(maxV)].forEach(function (g) {
+    svg += '<line x1="' + padL + '" x2="' + W + '" y1="' + y(g) + '" y2="' + y(g) + '" stroke="#EEEAF8"/>' +
+      '<text x="' + (padL - 4) + '" y="' + (y(g) + 3) + '" font-size="8" text-anchor="end" fill="#8A8799">' + g + '</text>';
+  });
+  valores.forEach(function (v, i) {
+    const c = meta === null ? '#B9B5C9' : (v <= meta ? '#00A884' : '#D64545');
+    const x = padL + i * ancho + ancho * 0.15;
+    svg += '<rect x="' + x + '" y="' + y(v) + '" width="' + (ancho * 0.7) + '" height="' + Math.max(0, H - padB - y(v)) + '" rx="2" fill="' + c + '"><title>' + etiquetas[i] + ': ' + v + '</title></rect>';
+    if (i % 4 === 0 || i === n - 1) {
+      svg += '<text x="' + (x + ancho * 0.35) + '" y="' + (H - 5) + '" font-size="8" text-anchor="middle" fill="#8A8799">' + etiquetas[i] + '</text>';
+    }
+  });
+  if (meta !== null) {
+    svg += '<line x1="' + padL + '" x2="' + W + '" y1="' + y(meta) + '" y2="' + y(meta) + '" stroke="' + color + '" stroke-width="1.5" stroke-dasharray="4 3"/>' +
+      '<text x="' + (W - 2) + '" y="' + (y(meta) - 3) + '" font-size="9" text-anchor="end" fill="' + color + '" font-weight="700" stroke="#FFFFFF" stroke-width="3" paint-order="stroke">meta ' + meta + '</text>';
+  }
+  return svg + '</svg>';
+}
+
+function dibujarSemanalPorArea(datos) {
+  const lunesFin = lunesUltimaSemanaCompleta();
+  const N = 16;
+  document.getElementById('subSemanalAreas').textContent =
+    'Últimas ' + N + ' semanas completas (hasta el ' + fechaCorta(sumarDias(lunesFin, 6)) + '), cada área contra su meta vigente';
+
+  document.getElementById('semanalPorArea').innerHTML = AREAS_PRINCIPALES.map(function (area) {
+    const meta = METAS[area];
+    const semanas = totalesSemanales(datos, area);
+    const valores = [], etiquetas = [];
+    for (let i = N - 1; i >= 0; i--) {
+      const l = sumarDias(lunesFin, -7 * i);
+      let v = 0;
+      for (let k = 0; k < meta.ventana; k++) v += semanas[sumarDias(l, -7 * k)] || 0;
+      valores.push(v);
+      etiquetas.push(fechaCorta(l));
+    }
+    const metaActual = meta.q4 === null ? null : metaVigente(meta, sumarDias(lunesFin, 6));
+    const enMeta = metaActual === null ? null : valores.filter(function (v) { return v <= metaActual; }).length;
+    const sub = metaActual === null
+      ? 'Sin meta por bajo volumen · suma móvil de 4 semanas'
+      : (meta.ventana === 4 ? 'Suma móvil de 4 semanas · ' : 'Quejas por semana · ') + 'en meta ' + enMeta + ' de ' + N + ' semanas';
+    return '<div class="mini-card"><div class="t">' + area + '</div><div class="s">' + sub + '</div>' +
+      crearMiniBarras(valores, etiquetas, metaActual, colorDeArea(area)) + '</div>';
+  }).join('');
+}
+
 function construirFiltros(datos) {
   const contenedor = document.getElementById('filtrosDiario');
   contenedor.innerHTML = '';
@@ -1035,18 +1095,18 @@ function construirFiltros(datos) {
     { label: 'Totales por grupo de Chat', areas: AREAS_GRUPO_CHAT },
   ];
 
-  areaFiltroActivo = opciones[0].areas;
+  const INICIAL = 1; // Colombia por sub-área: México tiene 5 veces menos volumen y sus líneas se aplastan
+  areaFiltroActivo = opciones[INICIAL].areas;
 
   opciones.forEach(function (op, i) {
     const btn = document.createElement('button');
     btn.textContent = op.label;
-    if (i === 0) btn.classList.add('activo');
+    if (i === INICIAL) btn.classList.add('activo');
     btn.addEventListener('click', function () {
       Array.from(contenedor.children).forEach(function (b) { b.classList.remove('activo'); });
       btn.classList.add('activo');
       areaFiltroActivo = op.areas;
       redibujarDiario(datos);
-      redibujarSemanal(datos);
     });
     contenedor.appendChild(btn);
   });
@@ -1420,7 +1480,7 @@ function dibujarMatrizCategorias(datos) {
     const p = valor(previo[area], cats);
     if (n === 0 && p === 0) return '<td style="color:#C8C3D8;">–</td>';
     const peso = totalArea[area] > 0 ? n / totalArea[area] : 0;
-    const fondo = 'rgba(106, 6, 250, ' + Math.min(0.35, peso * 0.5).toFixed(2) + ')';
+    const fondo = 'rgba(89, 40, 229, ' + Math.min(0.35, peso * 0.5).toFixed(2) + ')';
     const texto = 'var(--text-dark)';
     return '<td style="background:' + fondo + ';"><div class="n" style="color:' + texto + ';">' + n + '</div>' +
       '<div class="d" style="background:white;border-radius:8px;display:inline-block;padding:0 5px;margin-top:2px;">' + deltaHtml(n - p) + '</div></td>';
@@ -1560,7 +1620,6 @@ async function cargarReincidencia() {
     console.error(err);
     const msg = 'No se pudieron cargar los tickets. Detalle: ' + err.message;
     document.getElementById('subReincidencia').textContent = msg;
-    document.getElementById('subPorAsignar').textContent = msg;
     return;
   }
 
@@ -1580,7 +1639,6 @@ async function cargarReincidencia() {
   });
 
   dibujarReincidencia(tickets);
-  dibujarPorAsignar(tickets);
 }
 
 // ------------------------------------------------------------
@@ -1765,7 +1823,42 @@ function dibujarReincidencia(tickets) {
       '</tbody></table></div>' +
       (lista.length > MAX ? '<div class="metas-nota">Se muestran los ' + MAX + ' con más quejas. El resto se puede buscar por NID en el tablero principal.</div>' : '');
 
-  document.getElementById('reincidencia').innerHTML = '<div class="kpi-mini-grid">' + tarjetas + '</div>' + tabla;
+  // Tendencia mensual de la tasa de reincidencia (últimos 6 meses)
+  const meses = [];
+  let cursor = hasta.slice(0, 7);
+  for (let i = 0; i < 6; i++) {
+    meses.unshift(cursor);
+    const [yy, mm] = cursor.split('-').map(Number);
+    cursor = mm === 1 ? (yy - 1) + '-12' : yy + '-' + String(mm - 1).padStart(2, '0');
+  }
+  const nombresMes = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const porMes = meses.map(function (ym) {
+    const ini = ym + '-01';
+    const [yy, mm] = ym.split('-').map(Number);
+    const finMes = sumarDias((mm === 12 ? (yy + 1) + '-01' : yy + '-' + String(mm + 1).padStart(2, '0')) + '-01', -1);
+    const fin = finMes < hasta ? finMes : hasta;
+    return { ym: ym, parcial: finMes > hasta, r: calcularReincidencia(tickets, ini, fin).resumen };
+  });
+  const tendencia = '<div class="subtitulo-tabla" style="margin-top:18px;">Tendencia mensual — % de inmuebles reincidentes por área</div>' +
+    '<div class="tabla-scroll"><table class="tabla"><thead><tr><th>Área</th>' +
+    porMes.map(function (m) {
+      return '<th class="num">' + nombresMes[parseInt(m.ym.slice(5, 7), 10) - 1] + ' ' + m.ym.slice(2, 4) + (m.parcial ? '*' : '') + '</th>';
+    }).join('') + '</tr></thead><tbody>' +
+    AREAS_PRINCIPALES.map(function (area) {
+      return '<tr><td>' + esc(area) + '</td>' + porMes.map(function (m, i) {
+        const r = m.r[area];
+        if (r.tasa === null) return '<td class="num" style="color:#C8C3D8;">–</td>';
+        let flecha = '';
+        if (i > 0 && porMes[i - 1].r[area].tasa !== null) {
+          const d = Math.round(r.tasa - porMes[i - 1].r[area].tasa);
+          flecha = d < 0 ? ' <span class="verde-txt">▼</span>' : (d > 0 ? ' <span class="rojo-txt">▲</span>' : '');
+        }
+        return '<td class="num" title="' + r.reincidentes + ' de ' + r.nids + ' inmuebles">' + formatoPct(r.tasa) + flecha + '</td>';
+      }).join('') + '</tr>';
+    }).join('') + '</tbody></table></div>' +
+    '<div class="metas-nota">Cada mes se mide por separado: inmuebles con 2 o más quejas dentro del mismo mes y área. * Mes en curso, preliminar.</div>';
+
+  document.getElementById('reincidencia').innerHTML = '<div class="kpi-mini-grid">' + tarjetas + '</div>' + tendencia + tabla;
 }
 
 // ------------------------------------------------------------
