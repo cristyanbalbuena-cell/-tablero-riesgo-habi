@@ -127,6 +127,7 @@
     transition:border-color .15s ease, background .15s ease;
   }
   .area-card.zone-green{border-color:var(--green-dim);}
+  .area-card.zone-none{border-color:var(--border);}
   .area-card.zone-amber{border-color:var(--amber);background:linear-gradient(145deg, var(--surface) 60%, var(--amber-dim) 150%);}
   .area-card.zone-red{border-color:var(--red);border-width:2px;background:linear-gradient(145deg, var(--surface) 55%, var(--red-dim) 160%);box-shadow:0 0 0 1px var(--red), 0 8px 20px -8px rgba(239,95,95,.5);}
   .area-card .meta{flex:1;}
@@ -302,9 +303,9 @@
       <option value="Venta">Venta</option>
     </select>
     <select id="filterPeriodo">
-      <option value="all">Todo el histórico</option>
+      <option value="semana" selected>Últimos 7 días</option>
       <option value="dia">Hoy</option>
-      <option value="semana">Esta semana</option>
+      <option value="all">Todo el histórico</option>
       <option value="mes">Este mes</option>
       <option value="anio">Este año</option>
       <option value="personalizada">Personalizada…</option>
@@ -355,7 +356,7 @@
 
 <section>
   <div class="section-title"><h2 id="rankingTitle">Ranking de Colaboradores (Top 10)</h2><span class="count-chip" id="analystCount">0 colaboradores</span></div>
-  <div class="section-hint">Ordenado por volumen de tickets activos. Las filas en rojo requieren notificación inmediata al gerente responsable.</div>
+  <div class="section-hint" id="rankingHint">Ordenado por volumen de quejas en el periodo. Rojo = más de 5 quejas por semana.</div>
   <table>
     <thead><tr>
       <th>#</th><th>Colaborador</th><th>Marca / Área</th><th>Tickets</th><th>Progreso</th><th>Estado</th><th>Gerente responsable</th><th></th>
@@ -616,7 +617,12 @@ function normalizarNombre(n){
 }
 const APOYO_NORMALIZADO = Object.fromEntries(Object.entries(COLABORADORES_APOYO).map(([k,v])=> [normalizarNombre(k), v]));
 function areaDeApoyo(nombre){ return APOYO_NORMALIZADO[normalizarNombre(nombre)] || null; }
-function esAnalistaDeRanking(t){ return t.colaborador && t.colaborador !== "Sin asignar" && !areaDeApoyo(t.colaborador); }
+// "Sin Colaborador", "Sin asignar", "-", "NA"… = no asignado
+function esNombreVacio(n){
+  const v = normalizarNombre(n);
+  return v === "" || v === "-" || v === "na" || v === "n/a" || v === "null" || v.indexOf("sin ") === 0;
+}
+function esAnalistaDeRanking(t){ return t.colaborador && !esNombreVacio(t.colaborador) && !areaDeApoyo(t.colaborador); }
 
 // Ana Alonso: Dirección General / Supervisión México — nivel directivo, no se asigna
 // como gerente operativo de ninguna área ni recibe alertas automáticas de tickets.
@@ -633,31 +639,81 @@ function isActiveTicket(t){
   return true; // se cuenta el volumen total del mes: closed, hold, open y pending por igual
 }
 
-let filters = {marca:"all", area:"all", cliente:"all", proceso:"all", periodo:"all", fechaInicio:"", fechaFin:""};
+let filters = {marca:"all", area:"all", cliente:"all", proceso:"all", periodo:"semana", fechaInicio:"", fechaFin:""};
 
 // ---------------------------------------------------------------
 // RISK LOGIC
 // ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// SEMÁFORO BINARIO (verde / rojo) ligado a las metas por área.
+// Las metas son SEMANALES (las mismas de metricas.html) y se ajustan
+// al periodo elegido: en "Últimos 7 días" se usa la meta tal cual;
+// en "Este mes" se multiplica por ~4.6 semanas, etc.
+// null = sin meta (volumen demasiado bajo): seguimiento caso a caso.
+// ---------------------------------------------------------------
+const METAS_SEMANALES = {
+  "Habi Colombia|Trámites Sellers":      {q4: 19,   q1: 15},
+  "Habi Colombia|Trámites Buyers":       {q4: 13,   q1: 11},
+  "Habi Colombia|Trámites Inmobiliaria": {q4: 9,    q1: 8},
+  "Tuhabi México|Trámites Sellers":      {q4: 3.25, q1: 2.75}, // 13 y 11 cada 4 semanas
+  "Tuhabi México|Trámites Buyers":       null,
+  "Tuhabi México|Trámites Inmobiliaria": null,
+};
+const FECHA_CAMBIO_META = "2027-01-01";
+// Umbral por colaborador: más de 5 quejas por semana = rojo
+const UMBRAL_ANALISTA_SEMANAL = 5;
+
+function metaSemanalDe(marca, area){
+  const m = METAS_SEMANALES[marca + "|" + area];
+  if(!m) return null;
+  return new Date().toISOString().slice(0,10) >= FECHA_CAMBIO_META ? m.q1 : m.q4;
+}
+
+// Número de semanas que cubre el periodo seleccionado
+function semanasDelPeriodo(){
+  const p = filters.periodo;
+  const spanDatos = Math.max(1, ...TICKETS.filter(isAuthorized).map(t=> (t.dias||0) + 1));
+  if(p === "dia") return 1/7;
+  if(p === "semana") return 1;
+  if(p === "mes") return Math.min(32, spanDatos) / 7;
+  if(p === "anio") return Math.min(366, spanDatos) / 7;
+  if(p === "personalizada" && filters.fechaInicio && filters.fechaFin){
+    const d = (new Date(filters.fechaFin) - new Date(filters.fechaInicio)) / 86400000 + 1;
+    return Math.max(1, d) / 7;
+  }
+  return spanDatos / 7;
+}
+
+function umbralArea(marca, area){
+  const m = metaSemanalDe(marca, area);
+  return m === null ? null : Math.max(1, Math.round(m * semanasDelPeriodo()));
+}
+function textoPeriodo(){
+  const sel = document.getElementById("filterPeriodo");
+  return sel ? sel.options[sel.selectedIndex].text.toLowerCase() : "periodo actual";
+}
+function umbralAnalista(){
+  return Math.max(1, Math.round(UMBRAL_ANALISTA_SEMANAL * semanasDelPeriodo()));
+}
+
 function analystZone(n){
-  if(n > 5) return "red";
-  if(n >= 4) return "amber";
-  return "green";
+  return n > umbralAnalista() ? "red" : "green";
 }
-function areaZone(n){
-  if(n > 25) return "red";
-  if(n >= 15) return "amber";
-  return "green";
+function areaZone(n, marca, area){
+  const u = umbralArea(marca, area);
+  if(u === null) return "none";
+  return n > u ? "red" : "green";
 }
-const ZONE_COLOR = {green:"var(--green)", amber:"var(--amber)", red:"var(--red)"};
-const ZONE_LABEL_AREA = {green:"Área Estable", amber:"Área en Atención", red:"Área en Riesgo"};
-const ZONE_LABEL_ANALYST = {green:"Verde", amber:"Amarillo", red:"Rojo — Riesgo individual"};
+const ZONE_COLOR = {green:"var(--green)", red:"var(--red)", none:"var(--text-dim)"};
+const ZONE_LABEL_AREA = {green:"En meta", red:"Fuera de meta", none:"Seguimiento caso a caso"};
+const ZONE_LABEL_ANALYST = {green:"Verde", red:"Rojo — Riesgo individual"};
 
 function enPeriodo(t){
   const dias = t.dias || 0;
   const periodo = filters.periodo;
   if(periodo === "all") return true;
   if(periodo === "dia") return dias <= 0;
-  if(periodo === "semana") return dias <= 7;
+  if(periodo === "semana") return dias <= 6;
   if(periodo === "mes") return dias <= 31;
   if(periodo === "anio") return dias <= 365;
   if(periodo === "personalizada"){
@@ -705,13 +761,13 @@ function renderAreas(){
   for(const [key, tickets] of sorted){
     const [marca, area] = key.split("|");
     const n = tickets.length;
-    const zone = areaZone(n);
-    const scaleMax = 35;
+    const zone = areaZone(n, marca, area);
+    const umbral = umbralArea(marca, area);
+    const scaleMax = umbral === null ? Math.max(n, 5) * 1.25 : umbral * 1.6;
     const pct = Math.min(n/scaleMax, 1);
     const r = 34, circ = 2*Math.PI*r;
     const dash = circ * pct;
-    const tick15 = circ * (15/scaleMax);
-    const tick25 = circ * (25/scaleMax);
+    const tickMeta = umbral === null ? -1 : circ * (umbral/scaleMax);
     const gerente = getGerente(marca, area);
     const isOpen = expandedAreaKey === key;
     grid.insertAdjacentHTML("beforeend", `
@@ -721,10 +777,8 @@ function renderAreas(){
             <circle cx="39" cy="39" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="7"/>
             <circle cx="39" cy="39" r="${r}" fill="none" stroke="${ZONE_COLOR[zone]}" stroke-width="7"
               stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
-            <circle cx="39" cy="39" r="${r}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"
-              stroke-dasharray="1 ${circ-1}" stroke-dashoffset="${-tick15}"/>
-            <circle cx="39" cy="39" r="${r}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"
-              stroke-dasharray="1 ${circ-1}" stroke-dashoffset="${-tick25}"/>
+            ${tickMeta >= 0 ? `<circle cx="39" cy="39" r="${r}" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="3"
+              stroke-dasharray="1.5 ${circ-1.5}" stroke-dashoffset="${-tickMeta}"/>` : ""}
           </svg>
           <div class="gauge-num"><span class="n">${n}</span><span class="lbl">tickets</span></div>
         </div>
@@ -733,6 +787,7 @@ function renderAreas(){
           <div class="area-name">${area}</div>
           <div class="gerente-name">${gerente}</div>
           <div class="status-word" style="color:${ZONE_COLOR[zone]}">${ZONE_LABEL_AREA[zone]}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${umbral === null ? "Sin meta por bajo volumen" : "Meta del periodo: " + umbral + " o menos"}</div>
           ${zone==="red" ? `<div><span class="risk-badge">🚨 Requiere Revisión Operativa</span></div>` : ""}
           ${zone==="red" ? `<button class="small primary" data-tpl="area" data-key="${encodeURIComponent(key)}" style="margin-top:8px;">🚨 Notificar a ${gerente.split(" — ")[0]}</button>` : ""}
         </div>
@@ -785,7 +840,8 @@ function renderAnalysts(){
   const groups = groupBy(filtered, ["colaborador","marca","area"]);
   const body = document.getElementById("analystBody");
   body.innerHTML = "";
-  const scaleMax = 10;
+  const umbral = umbralAnalista();
+  const scaleMax = umbral * 2;
   let rows = [...groups.entries()].sort((a,b)=> b[1].length - a[1].length);
   if(verSoloEnRiesgo){
     rows = rows.filter(([key, tickets])=> analystZone(tickets.length) === "red");
@@ -797,8 +853,7 @@ function renderAnalysts(){
     const n = tickets.length;
     const zone = analystZone(n);
     const pct = Math.min(n/scaleMax,1)*100;
-    const tick3 = (3/scaleMax)*100;
-    const tick5 = (5/scaleMax)*100;
+    const tickUmbral = (umbral/scaleMax)*100;
     const gerente = getGerente(marca, area);
     const rowStyle = zone === "red" ? "background:var(--red-dim);" : "";
     body.insertAdjacentHTML("beforeend", `
@@ -811,8 +866,7 @@ function renderAnalysts(){
           <div style="display:flex;align-items:center;">
             <div class="rail">
               <div class="rail-fill ${zone}" style="width:${pct}%"></div>
-              <div class="rail-tick" style="left:${tick3}%"></div>
-              <div class="rail-tick" style="left:${tick5}%"></div>
+              <div class="rail-tick" style="left:${tickUmbral}%" title="Umbral: ${umbral}"></div>
             </div>
           </div>
         </td>
@@ -834,6 +888,8 @@ function renderAnalysts(){
   if(rows.length === 0 && verSoloEnRiesgo){
     body.innerHTML = `<tr><td colspan="8"><div class="empty-note">Ningún colaborador en zona roja con los filtros actuales.</div></td></tr>`;
   }
+  const hint = document.getElementById("rankingHint");
+  if(hint) hint.textContent = `Ordenado por volumen de quejas en el periodo. Rojo = más de ${umbral} quejas en el periodo (${UMBRAL_ANALISTA_SEMANAL} por semana).`;
   renderApoyo();
   renderCollabDrilldown();
 }
@@ -995,7 +1051,7 @@ function renderPqr(){
 // TEMPLATES
 // ---------------------------------------------------------------
 function buildAnalystTemplate(colaborador, marca, area){
-  const tickets = TICKETS.filter(t=>t.colaborador===colaborador && t.marca===marca && t.area===area);
+  const tickets = applyFilters(TICKETS).filter(t=>t.colaborador===colaborador && t.marca===marca && t.area===area);
   const gerente = getGerente(marca, area);
   const desglose = tickets.map(t=>`  • NID ${t.nid} — ${t.subcategoria} — Resumen IA: ${t.resumenIA || "(pendiente de generar)"}`).join("\n");
   return `Para: ${gerente}
@@ -1003,7 +1059,7 @@ Asunto: 🔴 Riesgo individual — ${colaborador} (${marca} · ${area})
 
 Hola,
 
-${colaborador} presenta actualmente ${tickets.length} tickets activos de quejas/reclamos, superando el umbral de riesgo individual (> 5 tickets).
+${colaborador} registra ${tickets.length} quejas/reclamos en el periodo seleccionado (${textoPeriodo()}), por encima del umbral individual (más de ${umbralAnalista()}).
 
 Listado de NIDs, subcategorías y resúmenes IA:
 ${desglose}
@@ -1014,7 +1070,7 @@ Se solicita revisar la carga de ${colaborador} y definir un plan de redistribuci
 }
 
 function buildAreaTemplate(marca, area){
-  const tickets = TICKETS.filter(t=>t.marca===marca && t.area===area);
+  const tickets = applyFilters(TICKETS).filter(t=>t.marca===marca && t.area===area);
   const gerente = getGerente(marca, area);
   const porColaborador = groupBy(tickets, ["colaborador"]);
   const resumen = [...porColaborador.entries()].map(([c, ts])=> `  • ${c}: ${ts.length} tickets`).join("\n");
@@ -1023,7 +1079,7 @@ Asunto: 🔴 Revisión urgente de procesos — ${area} (${marca})
 
 Hola,
 
-El área de ${area} en ${marca} registra actualmente ${tickets.length} tickets activos de quejas/reclamos, superando el umbral de riesgo estructural (> 25 tickets).
+El área de ${area} en ${marca} registra ${tickets.length} quejas/reclamos en el periodo seleccionado (${textoPeriodo()}), por encima de su meta para ese periodo (${umbralArea(marca, area)} o menos).
 
 Distribución por colaborador:
 ${resumen}
@@ -1248,7 +1304,7 @@ function rawObjToTicket(obj, idx){
   t.nid = getFirstVal(obj, [["nid","identificador","idpropiedad","propertyid","idnegocio"]]) || getByLetter(obj,"D") || "N/A";
   t.area = getFirstVal(obj, [["arearesponsable","area","group","grupo","departamento"], ["infra"]]) || t.area;
   const colabRaw = getFirstVal(obj, [["colaborador","nombrecolaborador","nombredelcolaborador"]]) || getByLetter(obj,"I");
-  t.colaborador = colabRaw ? resolveColabAlias(titleCaseName(colabRaw)) : "Sin asignar";
+  t.colaborador = (colabRaw && !esNombreVacio(colabRaw)) ? resolveColabAlias(titleCaseName(colabRaw)) : "Sin asignar";
   t.categoria = getFirstVal(obj, [["categoria","tipodeproblema","category","problema"]]) || "Sin categoría";
   t.subcategoria = getFirstVal(obj, [["subcategoria","subcategory","detalle"]]) || "Sin subcategoría";
   t.motivo = getFirstVal(obj, [["motivo","tipodecaso","casetype","reason"]]) || t.motivo;
@@ -1354,7 +1410,7 @@ function renderKPIs(){
   const totalTickets = filtered.length;
   const analistasEnRiesgo = [...analystGroups.values()].filter(t=> analystZone(t.length) === "red").length;
   const pqrCo = filtered.filter(t=> t.marca === "Habi Colombia" && t.esDerechoPeticion).length;
-  const areasEnAlerta = [...areaGroups.values()].filter(t=> areaZone(t.length) !== "green").length;
+  const areasEnAlerta = [...areaGroups.entries()].filter(([k, t])=> { const [m, a] = k.split("|"); return areaZone(t.length, m, a) === "red"; }).length;
 
   document.getElementById("kpiTotal").textContent = totalTickets;
   document.getElementById("kpiAnalistas").textContent = analistasEnRiesgo;
