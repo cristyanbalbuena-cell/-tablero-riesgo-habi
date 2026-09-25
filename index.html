@@ -368,6 +368,12 @@
 </section>
 
 <section>
+  <div class="section-title"><h2>Tickets por asignar</h2><span class="count-chip" id="porAsignarCount">0 tickets</span></div>
+  <div class="section-hint">Quejas sin colaborador desde el 1 de agosto de 2026. Escribe el analista y presiona Asignar: se guarda de forma permanente y el ticket sale de la lista. Respeta los filtros de marca y área.</div>
+  <div id="porAsignarList"></div>
+</section>
+
+<section>
   <div class="section-title"><h2>Detalle de Casos — Quejas y Reclamos</h2><span class="count-chip" id="pqrCount">0 casos</span></div>
   <div class="section-hint">Busca por NID, colaborador, categoría o ID de ticket. Haz clic en un resultado para ver el detalle completo.</div>
   <input type="text" id="caseSearch" placeholder="Buscar por NID, Colaborador, ID de ticket o Área..." style="width:100%;margin-bottom:14px;">
@@ -1425,7 +1431,51 @@ function renderAll(){
   renderKPIs();
   renderAreas();
   renderAnalysts();
+  renderPorAsignar();
   renderPqr();
+}
+
+// ---------------------------------------------------------------
+// TICKETS POR ASIGNAR — sin colaborador desde el 1 de agosto
+// (no depende del filtro de periodo; sí de marca y área)
+// ---------------------------------------------------------------
+const FECHA_INICIO_ASIGNACION = "2026-08-01";
+let porAsignarVerTodos = false;
+
+function renderPorAsignar(){
+  const box = document.getElementById("porAsignarList");
+  if(!box) return;
+  const lista = TICKETS.filter(t=>
+    isAuthorized(t) &&
+    (filters.marca==="all" || t.marca===filters.marca) &&
+    (filters.area==="all" || t.area===filters.area) &&
+    (t.fecha || "") >= FECHA_INICIO_ASIGNACION &&
+    esNombreVacio(t.colaborador)
+  ).sort((a,b)=> (a.fecha||"") < (b.fecha||"") ? 1 : -1);
+
+  document.getElementById("porAsignarCount").textContent = `${lista.length} ticket(s)`;
+  if(lista.length === 0){
+    box.innerHTML = `<div style="color:var(--text-dim);font-size:13px;padding:10px 0;">No hay tickets pendientes de asignar desde el 1 de agosto. ✅</div>`;
+    return;
+  }
+  const MAX = 15;
+  const visibles = porAsignarVerTodos ? lista : lista.slice(0, MAX);
+  box.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      ${visibles.map(t=> `
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--border);">
+          <strong style="min-width:70px;">${t.id}</strong>
+          <span class="tag">📅 ${(t.fecha||"").slice(0,10)}</span>
+          <span class="tag nid">${t.nid}</span>
+          <span class="tag">${t.marca} · ${t.area}</span>
+          <span class="tag">${t.categoria}</span>
+          <input type="text" list="colabDatalist" id="asignarInput-${t.id}" placeholder="Nombre del analista" style="flex:1;min-width:200px;">
+          <button class="small primary" data-asignar="${t.id}">Asignar</button>
+        </div>`).join("")}
+    </div>
+    ${lista.length > MAX ? `<div style="margin-top:8px;"><button class="small ghost" id="btnPorAsignarTodos">${porAsignarVerTodos ? "Ver solo los 15 más recientes" : `Ver los ${lista.length}`}</button></div>` : ""}`;
+  const btn = document.getElementById("btnPorAsignarTodos");
+  if(btn) btn.addEventListener("click", ()=>{ porAsignarVerTodos = !porAsignarVerTodos; renderPorAsignar(); });
 }
 
 document.getElementById("filterMarca").addEventListener("change", e=>{filters.marca=e.target.value; renderAll();});
@@ -1510,6 +1560,23 @@ document.body.addEventListener("click", e=>{
     guardarTicketsEnCache();
     renderAll();
     showToast(`Ticket ${ticketId} movido de "${anterior}" a "${nuevaArea}" (guardado permanente)`);
+    return;
+  }
+
+  const asignarBtn = e.target.closest("[data-asignar]");
+  if(asignarBtn){
+    const ticketId = asignarBtn.dataset.asignar;
+    const input = document.getElementById(`asignarInput-${ticketId}`);
+    const nuevoNombre = input ? input.value.trim() : "";
+    if(!nuevoNombre){ showToast("Escribe el nombre del analista."); return; }
+    const ticket = TICKETS.find(t=> t.id === ticketId);
+    if(!ticket){ return; }
+    const nombreFinal = resolveColabAlias(titleCaseName(nuevoNombre));
+    ticket.colaborador = nombreFinal;
+    registrarCorreccion(ticketId, {colaborador: nombreFinal});
+    guardarTicketsEnCache();
+    renderAll();
+    showToast(`Ticket ${ticketId} asignado a "${nombreFinal}" (guardado permanente)`);
     return;
   }
 
